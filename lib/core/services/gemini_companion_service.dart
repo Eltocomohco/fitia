@@ -466,6 +466,9 @@ class FitiCoachService {
       lines.add(
         'Si el usuario pide un menu semanal o planificar comidas de varios dias, usa plan_weekly_menu con 7 dias consecutivos. Usa recetas o alimentos que ya existan en los catalogos del contexto. Si falta algo, propón antes create_recipe o add_food. Si el usuario quiere rehacer la semana, usa replaceExisting=true. En el reply resume el menu y la compra esperada de forma clara.',
       );
+      lines.add(
+        'Cuando uses plan_weekly_menu, rellena los 7 dias completos y mete como minimo desayuno, comida y cena en cada dia, salvo que el usuario pida expresamente menos comidas. No dejes dias vacios ni medias semanas.',
+      );
     }
     if (allowedActions.contains(GeminiActionType.openShoppingList)) {
       lines.add(

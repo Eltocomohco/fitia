@@ -29,6 +29,13 @@ import '../../features/workouts/presentation/screens/workout_routine_detail_scre
 import '../../features/workouts/presentation/screens/workout_routine_editor_screen.dart';
 import '../navigation/main_shell_scaffold.dart';
 
+DateTime? _parseRouteDate(String? rawValue) {
+  if (rawValue == null || rawValue.trim().isEmpty) {
+    return null;
+  }
+  return DateTime.tryParse(rawValue.trim());
+}
+
 /// Rutas con estructura declarativa para la app de nutrición.
 final appRouterProvider = Provider<GoRouter>((ref) {
   return GoRouter(
@@ -80,8 +87,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/calendar',
         name: 'calendar',
-        pageBuilder: (context, state) =>
-            _bookPageTransition(state, const CalendarScreen()),
+        pageBuilder: (context, state) => _bookPageTransition(
+          state,
+          CalendarScreen(
+            initialDate: _parseRouteDate(state.uri.queryParameters['date']),
+          ),
+        ),
       ),
       GoRoute(
         path: '/meals',

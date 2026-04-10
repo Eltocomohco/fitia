@@ -787,6 +787,7 @@ abstract final class GeminiActionExecutor {
     final recipes = await isar.recetas.where().findAll();
     final plannedLogs = <RegistroDiario>[];
     final missingItems = <String>[];
+    final daysWithCoreMeals = <int, Set<TipoComida>>{};
 
     for (final rawDay in rawDays) {
       if (rawDay is! Map) {
@@ -829,6 +830,8 @@ abstract final class GeminiActionExecutor {
           continue;
         }
 
+        daysWithCoreMeals.putIfAbsent(dayOffset, () => <TipoComida>{}).add(mealType);
+
         plannedLogs.add(
           RegistroDiario(
             fecha: date,
@@ -848,6 +851,35 @@ abstract final class GeminiActionExecutor {
 
     if (plannedLogs.isEmpty) {
       return 'ERROR: plan_weekly_menu no contiene comidas aplicables.';
+    }
+
+    final expectedOffsets = List<int>.generate(7, (index) => index);
+    final missingDays = expectedOffsets
+        .where((offset) => !daysWithCoreMeals.containsKey(offset))
+        .toList(growable: false);
+    if (missingDays.isNotEmpty) {
+      return 'ERROR: el menu semanal debe incluir los 7 dias completos. Faltan los dias con offset: ${missingDays.join(', ')}.';
+    }
+
+    final incompleteDays = <String>[];
+    for (final offset in expectedOffsets) {
+      final mealTypes = daysWithCoreMeals[offset] ?? <TipoComida>{};
+      final missingCoreMeals = <String>[];
+      if (!mealTypes.contains(TipoComida.desayuno)) {
+        missingCoreMeals.add('desayuno');
+      }
+      if (!mealTypes.contains(TipoComida.comida)) {
+        missingCoreMeals.add('comida');
+      }
+      if (!mealTypes.contains(TipoComida.cena)) {
+        missingCoreMeals.add('cena');
+      }
+      if (missingCoreMeals.isNotEmpty) {
+        incompleteDays.add('dia $offset: ${missingCoreMeals.join(', ')}');
+      }
+    }
+    if (incompleteDays.isNotEmpty) {
+      return 'ERROR: cada dia del menu semanal debe incluir como minimo desayuno, comida y cena. Revisar ${incompleteDays.join(' | ')}.';
     }
 
     final endDate = _normalizeDay(startDate.add(const Duration(days: 6)))

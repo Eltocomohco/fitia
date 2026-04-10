@@ -12,7 +12,9 @@ import '../providers/calendar_provider.dart';
 /// Gestor del planificador semanal de ingestas.
 class CalendarScreen extends ConsumerStatefulWidget {
   /// Crea un [CalendarScreen].
-  const CalendarScreen({super.key});
+  const CalendarScreen({super.key, this.initialDate});
+
+  final DateTime? initialDate;
 
   @override
   ConsumerState<CalendarScreen> createState() => _CalendarScreenState();
@@ -20,6 +22,39 @@ class CalendarScreen extends ConsumerStatefulWidget {
 
 class _CalendarScreenState extends ConsumerState<CalendarScreen> {
   bool _showMonthView = false;
+  DateTime? _lastAppliedInitialDate;
+
+  @override
+  void initState() {
+    super.initState();
+    _applyInitialDate();
+  }
+
+  @override
+  void didUpdateWidget(covariant CalendarScreen oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    _applyInitialDate();
+  }
+
+  void _applyInitialDate() {
+    final initialDate = widget.initialDate;
+    if (initialDate == null) {
+      return;
+    }
+
+    final normalized = DateTime(initialDate.year, initialDate.month, initialDate.day);
+    if (_lastAppliedInitialDate == normalized) {
+      return;
+    }
+
+    _lastAppliedInitialDate = normalized;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      ref.read(selectedDateProvider.notifier).changeDate(normalized);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

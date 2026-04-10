@@ -9,37 +9,68 @@ import '../../../nutrition/data/models/receta.dart';
 import '../../../nutrition/data/models/registro_diario.dart';
 import '../../../shopping/presentation/providers/shopping_provider.dart';
 
-final _foodDayPreviewProvider = FutureProvider.family
-    .autoDispose<List<_FoodDayEntry>, DateTime>((ref, date) async {
+final _foodWeekPreviewProvider = FutureProvider.family
+    .autoDispose<List<_FoodWeekDaySummary>, DateTime>((ref, startDate) async {
       final isar = ref.read(inventoryIsarProvider);
-      final start = DateTime(date.year, date.month, date.day);
-      final end = start
-          .add(const Duration(days: 1))
-          .subtract(const Duration(microseconds: 1));
-      final logs = await isar.registrosDiarios
-          .filter()
-          .fechaBetween(start, end)
-          .findAll();
-      logs.sort((a, b) {
-        final byMeal = a.tipoComida.index.compareTo(b.tipoComida.index);
-        if (byMeal != 0) {
-          return byMeal;
-        }
-        return a.fecha.compareTo(b.fecha);
-      });
+      final normalizedStart = _normalizeDay(startDate);
+      final summaries = <_FoodWeekDaySummary>[];
 
-      final entries = <_FoodDayEntry>[];
-      for (final log in logs) {
-        final name = await _resolveFoodLogName(isar, log);
-        entries.add(
-          _FoodDayEntry(
-            mealType: log.tipoComida,
-            name: name,
-            grams: log.cantidadConsumidaGramos,
+      for (var offset = 0; offset < 7; offset++) {
+        final date = normalizedStart.add(Duration(days: offset));
+        final dayStart = _normalizeDay(date);
+        final dayEnd = dayStart
+            .add(const Duration(days: 1))
+            .subtract(const Duration(microseconds: 1));
+        final logs = await isar.registrosDiarios
+            .filter()
+            .fechaBetween(dayStart, dayEnd)
+            .findAll();
+        logs.sort((a, b) {
+          final byMeal = a.tipoComida.index.compareTo(b.tipoComida.index);
+          if (byMeal != 0) {
+            return byMeal;
+          }
+          return a.fecha.compareTo(b.fecha);
+        });
+
+        final entries = <_FoodDayEntry>[];
+        var kcal = 0.0;
+        var proteins = 0.0;
+        var carbs = 0.0;
+        var fats = 0.0;
+
+        for (final log in logs) {
+          final name = await _resolveFoodLogName(isar, log);
+          final macros = await _resolveFoodLogMacros(isar, log);
+          kcal += macros.kcal;
+          proteins += macros.proteins;
+          carbs += macros.carbs;
+          fats += macros.fats;
+
+          entries.add(
+            _FoodDayEntry(
+              mealType: log.tipoComida,
+              name: name,
+              grams: log.cantidadConsumidaGramos,
+            ),
+          );
+        }
+
+        summaries.add(
+          _FoodWeekDaySummary(
+            date: dayStart,
+            entries: entries,
+            macros: _FoodMacroTotals(
+              kcal: kcal,
+              proteins: proteins,
+              carbs: carbs,
+              fats: fats,
+            ),
           ),
         );
       }
-      return entries;
+
+      return summaries;
     });
 
 /// Hub principal del área de comida.
@@ -152,11 +183,8 @@ class _FoodDailyTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final today = _normalizeDay(DateTime.now());
-    final tomorrow = today.add(const Duration(days: 1));
-    final todayAsync = ref.watch(_foodDayPreviewProvider(today));
-    final tomorrowAsync = ref.watch(_foodDayPreviewProvider(tomorrow));
     final range = ref.watch(shoppingRangeProvider);
+    final weekAsync = ref.watch(_foodWeekPreviewProvider(range.start));
     final shoppingAsync = ref.watch(
       shoppingListProvider(range.start, range.end),
     );
@@ -164,23 +192,53 @@ class _FoodDailyTab extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        const _SectionTitle(title: 'Diario y planificación corta'),
+        const _SectionTitle(title: 'Diario y semana completa'),
         const SizedBox(height: 8),
-        _DayPlanCard(
-          title: 'Hoy',
-          subtitle: 'Lo que toca comer y lo que puedes ajustar ahora',
-          emptyText: 'No hay comida planificada para hoy.',
-          icon: Icons.wb_sunny_outlined,
-          entriesAsync: todayAsync,
-          onTap: () => context.push('/meals'),
+        Card(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Semana activa: ${_formatShortDate(range.start)} - ${_formatShortDate(range.end)}',
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Aquí ves cada día de la semana con sus comidas ya asignadas y la suma de macros del día.',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+              ],
+            ),
+          ),
         ),
-        _DayPlanCard(
-          title: 'Mañana',
-          subtitle: 'Anticipa huecos y cambia lo que no te encaje.',
-          emptyText: 'No hay comida planificada para mañana.',
-          icon: Icons.event_outlined,
-          entriesAsync: tomorrowAsync,
-          onTap: () => context.push('/calendar'),
+        const SizedBox(height: 12),
+        weekAsync.when(
+          loading: () => const Padding(
+            padding: EdgeInsets.symmetric(vertical: 24),
+            child: Center(child: CircularProgressIndicator()),
+          ),
+          error: (_, _) => const Card(
+            child: Padding(
+              padding: EdgeInsets.all(16),
+              child: Text('No se pudo cargar la planificación semanal.'),
+            ),
+          ),
+          data: (days) => Column(
+            children: [
+              for (final day in days)
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: _WeekDayPlanCard(
+                    summary: day,
+                    onTap: () => context.push(
+                      '/calendar?date=${day.date.toIso8601String().split('T').first}',
+                    ),
+                  ),
+                ),
+            ],
+          ),
         ),
         const SizedBox(height: 8),
         _ShoppingPreviewCard(
@@ -266,83 +324,6 @@ class _SectionTitle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(title, style: Theme.of(context).textTheme.titleMedium);
-  }
-}
-
-class _DayPlanCard extends StatelessWidget {
-  const _DayPlanCard({
-    required this.title,
-    required this.subtitle,
-    required this.emptyText,
-    required this.icon,
-    required this.entriesAsync,
-    required this.onTap,
-  });
-
-  final String title;
-  final String subtitle;
-  final String emptyText;
-  final IconData icon;
-  final AsyncValue<List<_FoodDayEntry>> entriesAsync;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(12),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Icon(icon),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(title, style: Theme.of(context).textTheme.titleMedium),
-                        const SizedBox(height: 2),
-                        Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
-                      ],
-                    ),
-                  ),
-                  const Icon(Icons.chevron_right),
-                ],
-              ),
-              const SizedBox(height: 12),
-              entriesAsync.when(
-                loading: () => const LinearProgressIndicator(minHeight: 2),
-                error: (_, _) => const Text('No se pudo cargar este plan.'),
-                data: (entries) {
-                  if (entries.isEmpty) {
-                    return Text(emptyText);
-                  }
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: entries
-                        .take(4)
-                        .map(
-                          (entry) => Padding(
-                            padding: const EdgeInsets.only(bottom: 6),
-                            child: Text(
-                              '${_mealTypeLabel(entry.mealType)} · ${entry.name} · ${entry.grams.toStringAsFixed(0)} g',
-                            ),
-                          ),
-                        )
-                        .toList(growable: false),
-                  );
-                },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -572,6 +553,145 @@ class _FoodDayEntry {
   final double grams;
 }
 
+class _FoodWeekDaySummary {
+  const _FoodWeekDaySummary({
+    required this.date,
+    required this.entries,
+    required this.macros,
+  });
+
+  final DateTime date;
+  final List<_FoodDayEntry> entries;
+  final _FoodMacroTotals macros;
+}
+
+class _FoodMacroTotals {
+  const _FoodMacroTotals({
+    this.kcal = 0,
+    this.proteins = 0,
+    this.carbs = 0,
+    this.fats = 0,
+  });
+
+  final double kcal;
+  final double proteins;
+  final double carbs;
+  final double fats;
+}
+
+class _WeekDayPlanCard extends StatelessWidget {
+  const _WeekDayPlanCard({required this.summary, required this.onTap});
+
+  final _FoodWeekDaySummary summary;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final isToday = _normalizeDay(summary.date) == _normalizeDay(DateTime.now());
+
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Icon(isToday ? Icons.wb_sunny_outlined : Icons.event_outlined),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          '${_weekdayLabel(summary.date)}${isToday ? ' · Hoy' : ''}',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _formatLongDate(summary.date),
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ],
+                    ),
+                  ),
+                  const Icon(Icons.chevron_right),
+                ],
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _MacroPill(
+                    label: '${summary.macros.kcal.toStringAsFixed(0)} kcal',
+                  ),
+                  _MacroPill(
+                    label: 'P ${summary.macros.proteins.toStringAsFixed(0)} g',
+                  ),
+                  _MacroPill(
+                    label: 'C ${summary.macros.carbs.toStringAsFixed(0)} g',
+                  ),
+                  _MacroPill(
+                    label: 'G ${summary.macros.fats.toStringAsFixed(0)} g',
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              if (summary.entries.isEmpty)
+                const Text('No hay comida planificada para este día.')
+              else
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: summary.entries
+                      .map(
+                        (entry) => Padding(
+                          padding: const EdgeInsets.only(bottom: 6),
+                          child: Text(
+                            '${_mealTypeLabel(entry.mealType)} · ${entry.name} · ${entry.grams.toStringAsFixed(0)} g',
+                          ),
+                        ),
+                      )
+                      .toList(growable: false),
+                ),
+              const SizedBox(height: 10),
+              Align(
+                alignment: Alignment.centerRight,
+                child: OutlinedButton.icon(
+                  onPressed: onTap,
+                  icon: const Icon(Icons.edit_calendar_outlined),
+                  label: const Text('Editar día'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MacroPill extends StatelessWidget {
+  const _MacroPill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: Theme.of(context).colorScheme.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(label, style: Theme.of(context).textTheme.bodySmall),
+    );
+  }
+}
+
 Future<String> _resolveFoodLogName(Isar isar, RegistroDiario log) async {
   if (log.esReceta) {
     final recipe = await isar.recetas.get(log.itemId);
@@ -580,6 +700,66 @@ Future<String> _resolveFoodLogName(Isar isar, RegistroDiario log) async {
 
   final food = await isar.alimentos.get(log.itemId);
   return food?.nombre ?? 'Alimento desconocido';
+}
+
+Future<_FoodMacroTotals> _resolveFoodLogMacros(Isar isar, RegistroDiario log) async {
+  if (log.esReceta) {
+    final recipe = await isar.recetas.get(log.itemId);
+    if (recipe == null) {
+      return const _FoodMacroTotals();
+    }
+
+    await recipe.ingredientes.load();
+    if (recipe.ingredientes.isEmpty) {
+      return const _FoodMacroTotals();
+    }
+
+    var totalWeight = 0.0;
+    var kcal = 0.0;
+    var proteins = 0.0;
+    var carbs = 0.0;
+    var fats = 0.0;
+
+    for (final ingredient in recipe.ingredientes) {
+      await ingredient.alimento.load();
+      final food = ingredient.alimento.value;
+      if (food == null) {
+        continue;
+      }
+
+      final factor = food.porcionBaseGramos <= 0
+          ? 0.0
+          : ingredient.cantidadGramos / food.porcionBaseGramos;
+      kcal += food.kcal * factor;
+      proteins += food.proteinas * factor;
+      carbs += food.carbohidratos * factor;
+      fats += food.grasas * factor;
+      totalWeight += ingredient.cantidadGramos;
+    }
+
+    final consumedFactor = totalWeight <= 0
+        ? 0.0
+        : log.cantidadConsumidaGramos / totalWeight;
+    return _FoodMacroTotals(
+      kcal: kcal * consumedFactor,
+      proteins: proteins * consumedFactor,
+      carbs: carbs * consumedFactor,
+      fats: fats * consumedFactor,
+    );
+  }
+
+  final food = await isar.alimentos.get(log.itemId);
+  if (food == null || food.porcionBaseGramos <= 0) {
+    return const _FoodMacroTotals();
+  }
+
+  final factor = log.cantidadConsumidaGramos / food.porcionBaseGramos;
+  return _FoodMacroTotals(
+    kcal: food.kcal * factor,
+    proteins: food.proteinas * factor,
+    carbs: food.carbohidratos * factor,
+    fats: food.grasas * factor,
+  );
 }
 
 DateTime _normalizeDay(DateTime date) {
@@ -597,4 +777,21 @@ String _mealTypeLabel(TipoComida mealType) {
 
 String _formatShortDate(DateTime date) {
   return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
+}
+
+String _formatLongDate(DateTime date) {
+  return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}/${date.year}';
+}
+
+String _weekdayLabel(DateTime date) {
+  return switch (date.weekday) {
+    DateTime.monday => 'Lunes',
+    DateTime.tuesday => 'Martes',
+    DateTime.wednesday => 'Miércoles',
+    DateTime.thursday => 'Jueves',
+    DateTime.friday => 'Viernes',
+    DateTime.saturday => 'Sábado',
+    DateTime.sunday => 'Domingo',
+    _ => 'Día',
+  };
 }
