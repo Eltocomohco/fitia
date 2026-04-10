@@ -45,6 +45,16 @@ const AlimentoSchema = CollectionSchema(
       name: r'proteinas',
       type: IsarType.double,
     ),
+    r'stockDisponibleGramos': PropertySchema(
+      id: 8,
+      name: r'stockDisponibleGramos',
+      type: IsarType.double,
+    ),
+    r'stockPersonalDisponibleGramos': PropertySchema(
+      id: 9,
+      name: r'stockPersonalDisponibleGramos',
+      type: IsarType.double,
+    ),
   },
 
   estimateSize: _alimentoEstimateSize,
@@ -126,6 +136,8 @@ void _alimentoSerialize(
   writer.writeString(offsets[5], object.nombre);
   writer.writeDouble(offsets[6], object.porcionBaseGramos);
   writer.writeDouble(offsets[7], object.proteinas);
+  writer.writeDouble(offsets[8], object.stockDisponibleGramos);
+  writer.writeDouble(offsets[9], object.stockPersonalDisponibleGramos);
 }
 
 Alimento _alimentoDeserialize(
@@ -144,6 +156,8 @@ Alimento _alimentoDeserialize(
     nombre: reader.readString(offsets[5]),
     porcionBaseGramos: reader.readDoubleOrNull(offsets[6]) ?? 100.0,
     proteinas: reader.readDouble(offsets[7]),
+    stockDisponibleGramos: reader.readDoubleOrNull(offsets[8]) ?? 0.0,
+    stockPersonalDisponibleGramos: reader.readDoubleOrNull(offsets[9]) ?? 0.0,
   );
   return object;
 }
@@ -171,6 +185,10 @@ P _alimentoDeserializeProp<P>(
       return (reader.readDoubleOrNull(offset) ?? 100.0) as P;
     case 7:
       return (reader.readDouble(offset)) as P;
+    case 8:
+      return (reader.readDoubleOrNull(offset) ?? 0.0) as P;
+    case 9:
+      return (reader.readDoubleOrNull(offset) ?? 0.0) as P;
     default:
       throw IsarError('Unknown property with id $propertyId');
   }
@@ -1335,6 +1353,159 @@ extension AlimentoQueryFilter
       );
     });
   }
+
+  QueryBuilder<Alimento, Alimento, QAfterFilterCondition>
+  stockDisponibleGramosEqualTo(double value, {double epsilon = Query.epsilon}) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'stockDisponibleGramos',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QAfterFilterCondition>
+  stockDisponibleGramosGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'stockDisponibleGramos',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QAfterFilterCondition>
+  stockDisponibleGramosLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'stockDisponibleGramos',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QAfterFilterCondition>
+  stockDisponibleGramosBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'stockDisponibleGramos',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QAfterFilterCondition>
+  stockPersonalDisponibleGramosEqualTo(
+    double value, {
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.equalTo(
+          property: r'stockPersonalDisponibleGramos',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QAfterFilterCondition>
+  stockPersonalDisponibleGramosGreaterThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.greaterThan(
+          include: include,
+          property: r'stockPersonalDisponibleGramos',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QAfterFilterCondition>
+  stockPersonalDisponibleGramosLessThan(
+    double value, {
+    bool include = false,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.lessThan(
+          include: include,
+          property: r'stockPersonalDisponibleGramos',
+          value: value,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QAfterFilterCondition>
+  stockPersonalDisponibleGramosBetween(
+    double lower,
+    double upper, {
+    bool includeLower = true,
+    bool includeUpper = true,
+    double epsilon = Query.epsilon,
+  }) {
+    return QueryBuilder.apply(this, (query) {
+      return query.addFilterCondition(
+        FilterCondition.between(
+          property: r'stockPersonalDisponibleGramos',
+          lower: lower,
+          includeLower: includeLower,
+          upper: upper,
+          includeUpper: includeUpper,
+
+          epsilon: epsilon,
+        ),
+      );
+    });
+  }
 }
 
 extension AlimentoQueryObject
@@ -1425,6 +1596,33 @@ extension AlimentoQuerySortBy on QueryBuilder<Alimento, Alimento, QSortBy> {
   QueryBuilder<Alimento, Alimento, QAfterSortBy> sortByProteinasDesc() {
     return QueryBuilder.apply(this, (query) {
       return query.addSortBy(r'proteinas', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QAfterSortBy> sortByStockDisponibleGramos() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'stockDisponibleGramos', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QAfterSortBy>
+  sortByStockDisponibleGramosDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'stockDisponibleGramos', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QAfterSortBy>
+  sortByStockPersonalDisponibleGramos() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'stockPersonalDisponibleGramos', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QAfterSortBy>
+  sortByStockPersonalDisponibleGramosDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'stockPersonalDisponibleGramos', Sort.desc);
     });
   }
 }
@@ -1526,6 +1724,33 @@ extension AlimentoQuerySortThenBy
       return query.addSortBy(r'proteinas', Sort.desc);
     });
   }
+
+  QueryBuilder<Alimento, Alimento, QAfterSortBy> thenByStockDisponibleGramos() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'stockDisponibleGramos', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QAfterSortBy>
+  thenByStockDisponibleGramosDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'stockDisponibleGramos', Sort.desc);
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QAfterSortBy>
+  thenByStockPersonalDisponibleGramos() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'stockPersonalDisponibleGramos', Sort.asc);
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QAfterSortBy>
+  thenByStockPersonalDisponibleGramosDesc() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addSortBy(r'stockPersonalDisponibleGramos', Sort.desc);
+    });
+  }
 }
 
 extension AlimentoQueryWhereDistinct
@@ -1579,6 +1804,20 @@ extension AlimentoQueryWhereDistinct
   QueryBuilder<Alimento, Alimento, QDistinct> distinctByProteinas() {
     return QueryBuilder.apply(this, (query) {
       return query.addDistinctBy(r'proteinas');
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QDistinct>
+  distinctByStockDisponibleGramos() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'stockDisponibleGramos');
+    });
+  }
+
+  QueryBuilder<Alimento, Alimento, QDistinct>
+  distinctByStockPersonalDisponibleGramos() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addDistinctBy(r'stockPersonalDisponibleGramos');
     });
   }
 }
@@ -1636,6 +1875,20 @@ extension AlimentoQueryProperty
   QueryBuilder<Alimento, double, QQueryOperations> proteinasProperty() {
     return QueryBuilder.apply(this, (query) {
       return query.addPropertyName(r'proteinas');
+    });
+  }
+
+  QueryBuilder<Alimento, double, QQueryOperations>
+  stockDisponibleGramosProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'stockDisponibleGramos');
+    });
+  }
+
+  QueryBuilder<Alimento, double, QQueryOperations>
+  stockPersonalDisponibleGramosProperty() {
+    return QueryBuilder.apply(this, (query) {
+      return query.addPropertyName(r'stockPersonalDisponibleGramos');
     });
   }
 }

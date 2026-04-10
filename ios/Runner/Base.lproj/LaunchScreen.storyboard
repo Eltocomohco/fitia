@@ -16,13 +16,47 @@
                     <view key="view" contentMode="scaleToFill" id="Ze5-6b-2t3">
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <imageView opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" image="LaunchImage" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4">
-                            </imageView>
+                            <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="b9A-tO-SVt">
+                                <rect key="frame" x="117.5" y="251.5" width="140" height="140"/>
+                                <subviews>
+                                    <imageView opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="scaleAspectFit" image="LaunchImage" translatesAutoresizingMaskIntoConstraints="NO" id="YRO-k0-Ey4"/>
+                                </subviews>
+                                <color key="backgroundColor" red="0.8980392157" green="0.7529411765" blue="0.262745098" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <constraints>
+                                    <constraint firstAttribute="width" constant="140" id="3IB-6v-MQ0"/>
+                                    <constraint firstAttribute="height" constant="140" id="A8h-FM-MvK"/>
+                                    <constraint firstItem="YRO-k0-Ey4" firstAttribute="leading" secondItem="b9A-tO-SVt" secondAttribute="leading" constant="22" id="MCo-hd-FXr"/>
+                                    <constraint firstAttribute="trailing" secondItem="YRO-k0-Ey4" secondAttribute="trailing" constant="22" id="N4T-1G-VFK"/>
+                                    <constraint firstItem="YRO-k0-Ey4" firstAttribute="top" secondItem="b9A-tO-SVt" secondAttribute="top" constant="22" id="QQV-PV-SfQ"/>
+                                    <constraint firstAttribute="bottom" secondItem="YRO-k0-Ey4" secondAttribute="bottom" constant="22" id="q7E-nQ-2H8"/>
+                                </constraints>
+                                <userDefinedRuntimeAttributes>
+                                    <userDefinedRuntimeAttribute type="number" keyPath="layer.cornerRadius">
+                                        <real key="value" value="70"/>
+                                    </userDefinedRuntimeAttribute>
+                                </userDefinedRuntimeAttributes>
+                            </view>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="Fitora" textAlignment="center" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="WFP-L8-EXs">
+                                <rect key="frame" x="113" y="423" width="149" height="35"/>
+                                <fontDescription key="fontDescription" type="system" weight="semibold" pointSize="28"/>
+                                <color key="textColor" red="0.1647058824" green="0.2039215686" blue="0.2549019608" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                                <nil key="highlightedColor"/>
+                            </label>
+                            <label opaque="NO" userInteractionEnabled="NO" contentMode="left" text="Nutricion y progreso" textAlignment="center" lineBreakMode="tailTruncation" numberOfLines="2" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="bXS-XN-QrJ">
+                                <rect key="frame" x="91.5" y="470" width="192" height="40"/>
+                                <fontDescription key="fontDescription" type="system" pointSize="16"/>
+                                <color key="textColor" white="0.2549019608" alpha="0.72" colorSpace="custom" customColorSpace="genericGamma22GrayColorSpace"/>
+                                <nil key="highlightedColor"/>
+                            </label>
                         </subviews>
-                        <color key="backgroundColor" red="1" green="1" blue="1" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
+                        <color key="backgroundColor" red="0.9882352941" green="0.9843137255" blue="0.9725490196" alpha="1" colorSpace="custom" customColorSpace="sRGB"/>
                         <constraints>
-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="1a2-6s-vTC"/>
-                            <constraint firstItem="YRO-k0-Ey4" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" id="4X2-HB-R7a"/>
+                            <constraint firstItem="bXS-XN-QrJ" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="0CW-9a-Kze"/>
+                            <constraint firstItem="b9A-tO-SVt" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="1a2-6s-vTC"/>
+                            <constraint firstItem="WFP-L8-EXs" firstAttribute="centerX" secondItem="Ze5-6b-2t3" secondAttribute="centerX" id="3Pd-wG-yQc"/>
+                            <constraint firstItem="WFP-L8-EXs" firstAttribute="top" secondItem="b9A-tO-SVt" secondAttribute="bottom" constant="31" id="7Nw-hS-Lhv"/>
+                            <constraint firstItem="b9A-tO-SVt" firstAttribute="centerY" secondItem="Ze5-6b-2t3" secondAttribute="centerY" constant="-58" id="AyJ-yD-cFT"/>
+                            <constraint firstItem="bXS-XN-QrJ" firstAttribute="top" secondItem="WFP-L8-EXs" secondAttribute="bottom" constant="12" id="Fzn-mL-Hjr"/>
                         </constraints>
                     </view>
                 </viewController>

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../tracking/presentation/providers/water_intake_provider.dart';
 import '../providers/daily_macros_provider.dart';
+import '../providers/metabolic_adjustment_provider.dart';
+import '../widgets/health_connect_card.dart';
 
 /// Pantalla principal con resumen diario de nutrición y comidas registradas.
 class DashboardScreen extends ConsumerWidget {
@@ -14,117 +17,159 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final macrosAsync = ref.watch(dailyMacrosProvider);
     final waterAsync = ref.watch(waterIntakeProvider);
+    final metabolicSuggestion = ref.watch(
+      metabolicAdjustmentSuggestionProvider,
+    );
+    final theme = Theme.of(context);
+    final now = DateTime.now();
+    final formattedDate =
+        '${_weekdayLabel(now.weekday)}, ${now.day.toString().padLeft(2, '0')}/'
+        '${now.month.toString().padLeft(2, '0')}/${now.year}';
 
-    return macrosAsync.when(
-      loading: () => const _DashboardLoadingSkeleton(),
-      error: (_, _) => const Center(child: Text('Error al cargar datos')),
-      data: (macros) {
-        final theme = Theme.of(context);
-        final now = DateTime.now();
-        final formattedDate =
-            '${_weekdayLabel(now.weekday)}, ${now.day.toString().padLeft(2, '0')}/'
-            '${now.month.toString().padLeft(2, '0')}/${now.year}';
-
-        final kcalProgress = _safeProgress(
-          macros.kcalConsumidas,
-          macros.kcalObjetivo,
-        );
-        final proteinasProgress = _safeProgress(
-          macros.proteinasGramos,
-          macros.proteinasObjetivo,
-        );
-        final carbohidratosProgress = _safeProgress(
-          macros.carbohidratosGramos,
-          macros.carbohidratosObjetivo,
-        );
-        final grasasProgress = _safeProgress(
-          macros.grasasGramos,
-          macros.grasasObjetivo,
-        );
-        final waterMl =
-            waterAsync.asData?.value
-                .fold<int>(0, (sum, item) => sum + item.mililitros)
-                .toDouble() ??
-            0;
-        final waterGoal = macros.aguaObjetivoMl;
-        final waterProgress = _safeProgress(waterMl, waterGoal);
-
-        return Scaffold(
-          appBar: AppBar(title: const Text('Hoy')),
-          body: ListView(
-            padding: const EdgeInsets.all(16),
-            children: [
-              Text('Hoy · $formattedDate', style: theme.textTheme.titleMedium),
-              const SizedBox(height: 12),
-              Text(
-                'Resumen diario de macronutrientes',
-                style: theme.textTheme.titleLarge,
-              ),
-              const SizedBox(height: 12),
-              GridView.count(
-                crossAxisCount: 2,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 0.82,
-                children: [
-                  _MacroIndicator(
-                    label: 'Calorías',
-                    value: macros.kcalConsumidas,
-                    objective: macros.kcalObjetivo,
-                    unit: 'kcal',
-                    progress: kcalProgress,
-                    color: theme.colorScheme.primary,
-                  ),
-                  _MacroIndicator(
-                    label: 'Proteínas',
-                    value: macros.proteinasGramos,
-                    objective: macros.proteinasObjetivo,
-                    unit: 'g',
-                    progress: proteinasProgress,
-                    color: theme.colorScheme.secondary,
-                  ),
-                  _MacroIndicator(
-                    label: 'Carbohidratos',
-                    value: macros.carbohidratosGramos,
-                    objective: macros.carbohidratosObjetivo,
-                    unit: 'g',
-                    progress: carbohidratosProgress,
-                    color: theme.colorScheme.tertiary,
-                  ),
-                  _MacroIndicator(
-                    label: 'Grasas',
-                    value: macros.grasasGramos,
-                    objective: macros.grasasObjetivo,
-                    unit: 'g',
-                    progress: grasasProgress,
-                    color: theme.colorScheme.error,
-                  ),
-                  _MacroIndicator(
-                    label: 'Agua',
-                    value: waterMl,
-                    objective: waterGoal,
-                    unit: 'ml',
-                    progress: waterProgress,
-                    color: Colors.lightBlue,
-                  ),
-                  _WaterQuickAddCard(
-                    onAdd: (ml) async {
-                      await ref
-                          .read(waterIntakeProvider.notifier)
-                          .addIntake(ml);
-                    },
-                    onClearToday: () async {
-                      await ref.read(waterIntakeProvider.notifier).clearToday();
-                    },
-                  ),
-                ],
-              ),
-            ],
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Hoy'),
+        actions: [
+          IconButton(
+            tooltip: 'Calendario',
+            onPressed: () => context.push('/calendar'),
+            icon: const Icon(Icons.calendar_month_outlined),
           ),
-        );
-      },
+          IconButton(
+            tooltip: 'Reproductor',
+            onPressed: () => context.push('/player'),
+            icon: const Icon(Icons.library_music_outlined),
+          ),
+          IconButton(
+            tooltip: 'Perfil y ajustes',
+            onPressed: () => context.push('/profile'),
+            icon: const Icon(Icons.person_outline),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Text(
+            '${_weekdayLabel(now.weekday)} · Macros',
+            style: theme.textTheme.titleLarge,
+          ),
+          const SizedBox(height: 4),
+          Text(formattedDate, style: theme.textTheme.bodyMedium),
+          const SizedBox(height: 12),
+          if (metabolicSuggestion != null) ...[
+            _MetabolicAlertCard(suggestion: metabolicSuggestion),
+            const SizedBox(height: 12),
+          ],
+          macrosAsync.when(
+            loading: () => const _DashboardLoadingSkeleton(),
+            error: (_, _) => const Padding(
+              padding: EdgeInsets.symmetric(vertical: 24),
+              child: Center(child: Text('Error al cargar datos')),
+            ),
+            data: (macros) {
+              final kcalProgress = _safeProgress(
+                macros.kcalConsumidas,
+                macros.kcalObjetivo,
+              );
+              final proteinasProgress = _safeProgress(
+                macros.proteinasGramos,
+                macros.proteinasObjetivo,
+              );
+              final carbohidratosProgress = _safeProgress(
+                macros.carbohidratosGramos,
+                macros.carbohidratosObjetivo,
+              );
+              final grasasProgress = _safeProgress(
+                macros.grasasGramos,
+                macros.grasasObjetivo,
+              );
+              final waterMl =
+                  waterAsync.asData?.value
+                      .fold<int>(0, (sum, item) => sum + item.mililitros)
+                      .toDouble() ??
+                  0;
+              final waterGoal = macros.aguaObjetivoMl;
+              final waterProgress = _safeProgress(waterMl, waterGoal);
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Resumen diario de macronutrientes',
+                    style: theme.textTheme.titleLarge,
+                  ),
+                  const SizedBox(height: 12),
+                  GridView.count(
+                    crossAxisCount: 2,
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    crossAxisSpacing: 12,
+                    mainAxisSpacing: 12,
+                    childAspectRatio: 0.82,
+                    children: [
+                      _MacroIndicator(
+                        label: 'Calorías',
+                        value: macros.kcalConsumidas,
+                        objective: macros.kcalObjetivo,
+                        unit: 'kcal',
+                        progress: kcalProgress,
+                        color: theme.colorScheme.primary,
+                      ),
+                      _MacroIndicator(
+                        label: 'Proteínas',
+                        value: macros.proteinasGramos,
+                        objective: macros.proteinasObjetivo,
+                        unit: 'g',
+                        progress: proteinasProgress,
+                        color: theme.colorScheme.secondary,
+                      ),
+                      _MacroIndicator(
+                        label: 'Carbohidratos',
+                        value: macros.carbohidratosGramos,
+                        objective: macros.carbohidratosObjetivo,
+                        unit: 'g',
+                        progress: carbohidratosProgress,
+                        color: theme.colorScheme.tertiary,
+                      ),
+                      _MacroIndicator(
+                        label: 'Grasas',
+                        value: macros.grasasGramos,
+                        objective: macros.grasasObjetivo,
+                        unit: 'g',
+                        progress: grasasProgress,
+                        color: theme.colorScheme.error,
+                      ),
+                      _MacroIndicator(
+                        label: 'Agua',
+                        value: waterMl,
+                        objective: waterGoal,
+                        unit: 'ml',
+                        progress: waterProgress,
+                        color: Colors.lightBlue,
+                      ),
+                      _WaterQuickAddCard(
+                        onAdd: (ml) async {
+                          await ref
+                              .read(waterIntakeProvider.notifier)
+                              .addIntake(ml);
+                        },
+                        onClearToday: () async {
+                          await ref
+                              .read(waterIntakeProvider.notifier)
+                              .clearToday();
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  const HealthConnectCard(),
+                ],
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
@@ -294,17 +339,17 @@ class _DashboardLoadingSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          height: 22,
-          width: 140,
-          decoration: BoxDecoration(
-            color: Colors.grey.withValues(alpha: 0.18),
-            borderRadius: BorderRadius.circular(8),
-          ),
-        )
+              height: 22,
+              width: 140,
+              decoration: BoxDecoration(
+                color: Colors.grey.withValues(alpha: 0.18),
+                borderRadius: BorderRadius.circular(8),
+              ),
+            )
             .animate(onPlay: (controller) => controller.repeat())
             .shimmer(duration: 1100.ms),
         const SizedBox(height: 16),
@@ -327,6 +372,42 @@ class _DashboardLoadingSkeleton extends StatelessWidget {
           }),
         ),
       ],
+    );
+  }
+}
+
+class _MetabolicAlertCard extends StatelessWidget {
+  const _MetabolicAlertCard({required this.suggestion});
+
+  final dynamic suggestion;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.14),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Icon(Icons.insights_outlined),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Sugerencia metabólica',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 4),
+                  Text(suggestion.message as String),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

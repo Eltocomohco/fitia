@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../../dashboard/presentation/providers/health_connect_provider.dart';
 import '../providers/body_profile_provider.dart';
 import '../providers/tracking_provider.dart';
 import '../providers/water_intake_provider.dart';
@@ -15,8 +16,10 @@ class BodyTrackingScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final trackingAsync = ref.watch(bodyTrackingProvider);
     final profileAsync = ref.watch(bodyProfileProvider);
+    final healthAsync = ref.watch(healthConnectProvider);
     final profile = profileAsync.asData?.value ?? const BodyProfileState();
     final waterAsync = ref.watch(waterIntakeProvider);
+    final health = healthAsync.asData?.value;
 
     return Scaffold(
       appBar: AppBar(title: const Text('Seguimiento corporal')),
@@ -69,6 +72,28 @@ class BodyTrackingScreen extends ConsumerWidget {
                       const SizedBox(height: 6),
                       Text(
                         'Edad: ${profile.edad} · Altura: ${profile.alturaCm.toStringAsFixed(0)} cm',
+                      ),
+                      if (profile.nombre.isNotEmpty) ...[
+                        const SizedBox(height: 6),
+                        Text('Nombre: ${profile.nombre}'),
+                      ],
+                      if (profile.objetivoPrincipal.isNotEmpty ||
+                          profile.pesoObjetivoKg != null) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          'Objetivo: ${profile.objetivoPrincipal.isEmpty ? 'sin definir' : profile.objetivoPrincipal}${profile.pesoObjetivoKg == null ? '' : ' · ${profile.pesoObjetivoKg!.toStringAsFixed(1)} kg'}${profile.pesoObjetivoPlazoSemanas == null ? '' : ' en ${profile.pesoObjetivoPlazoSemanas} semanas'}',
+                        ),
+                      ],
+                      if (profile.pasosDiarios > 0 ||
+                          health?.status == HealthConnectCardStatus.ready) ...[
+                        const SizedBox(height: 6),
+                        Text(
+                          'Pasos hoy: ${profile.pasosDiarios} · Sueño: ${_formatSleepWindow(profile.suenoInicioMinutos, profile.suenoFinMinutos)}',
+                        ),
+                      ],
+                      const SizedBox(height: 6),
+                      Text(
+                        'Adherencia auto: dieta ${profile.adherenciaDietaSemanal}% · entreno ${profile.adherenciaEntrenoSemanal}%',
                       ),
                       const SizedBox(height: 8),
                       Align(
@@ -480,9 +505,35 @@ class BodyTrackingScreen extends ConsumerWidget {
     WidgetRef ref,
     BodyProfileState profile,
   ) async {
+    final nombreCtrl = TextEditingController(text: profile.nombre);
     final edadCtrl = TextEditingController(text: profile.edad.toString());
     final alturaCtrl = TextEditingController(
       text: profile.alturaCm.toStringAsFixed(0),
+    );
+    final pesoObjetivoCtrl = TextEditingController(
+      text: profile.pesoObjetivoKg == null
+          ? ''
+          : profile.pesoObjetivoKg!.toStringAsFixed(1),
+    );
+    final pesoObjetivoPlazoCtrl = TextEditingController(
+      text: profile.pesoObjetivoPlazoSemanas?.toString() ?? '',
+    );
+    final objetivoCtrl = TextEditingController(text: profile.objetivoPrincipal);
+    final hambreCtrl = TextEditingController(text: profile.hambreHabitual);
+    final saciedadDesayunoCtrl = TextEditingController(
+      text: profile.saciedadDesayuno,
+    );
+    final saciedadComidaCtrl = TextEditingController(text: profile.saciedadComida);
+    final saciedadCenaCtrl = TextEditingController(text: profile.saciedadCena);
+    final digestionCtrl = TextEditingController(text: profile.digestion);
+    final alimentosCtrl = TextEditingController(
+      text: profile.alimentosQueSientanMal,
+    );
+    final preferenciasCtrl = TextEditingController(
+      text: profile.preferenciasComida,
+    );
+    final emocionalCtrl = TextEditingController(
+      text: profile.estadoEmocionalComida,
     );
 
     await showDialog<void>(
@@ -493,6 +544,12 @@ class BodyTrackingScreen extends ConsumerWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
+              TextField(
+                controller: nombreCtrl,
+                textCapitalization: TextCapitalization.words,
+                decoration: const InputDecoration(labelText: 'Nombre'),
+              ),
+              const SizedBox(height: 8),
               TextField(
                 controller: edadCtrl,
                 keyboardType: TextInputType.number,
@@ -505,6 +562,85 @@ class BodyTrackingScreen extends ConsumerWidget {
                   decimal: true,
                 ),
                 decoration: const InputDecoration(labelText: 'Altura (cm)'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: pesoObjetivoCtrl,
+                keyboardType: const TextInputType.numberWithOptions(
+                  decimal: true,
+                ),
+                decoration: const InputDecoration(labelText: 'Peso objetivo (kg)'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: pesoObjetivoPlazoCtrl,
+                keyboardType: TextInputType.number,
+                decoration: const InputDecoration(
+                  labelText: 'Plazo objetivo (semanas)',
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: objetivoCtrl,
+                decoration: const InputDecoration(labelText: 'Objetivo principal'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: hambreCtrl,
+                decoration: const InputDecoration(labelText: 'Hambre habitual'),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: saciedadDesayunoCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Saciedad tras desayuno',
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: saciedadComidaCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Saciedad tras comida',
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: saciedadCenaCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Saciedad tras cena',
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Adherencia semanal auto: dieta ${profile.adherenciaDietaSemanal}% · entreno ${profile.adherenciaEntrenoSemanal}%',
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: digestionCtrl,
+                decoration: const InputDecoration(labelText: 'Digestión / molestias'),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: alimentosCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Alimentos que te sientan mal',
+                ),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: preferenciasCtrl,
+                decoration: const InputDecoration(labelText: 'Preferencias de comida'),
+                maxLines: 2,
+              ),
+              const SizedBox(height: 8),
+              TextField(
+                controller: emocionalCtrl,
+                decoration: const InputDecoration(
+                  labelText: 'Estado emocional al comer',
+                ),
+                maxLines: 2,
               ),
             ],
           ),
@@ -520,12 +656,42 @@ class BodyTrackingScreen extends ConsumerWidget {
               final altura = double.tryParse(
                 alturaCtrl.text.trim().replaceAll(',', '.'),
               );
+              final pesoObjetivo = pesoObjetivoCtrl.text.trim().isEmpty
+                  ? null
+                  : double.tryParse(
+                      pesoObjetivoCtrl.text.trim().replaceAll(',', '.'),
+                    );
+              final pesoObjetivoPlazo =
+                  pesoObjetivoPlazoCtrl.text.trim().isEmpty
+                  ? null
+                  : int.tryParse(pesoObjetivoPlazoCtrl.text.trim());
               if (edad == null || altura == null || edad <= 0 || altura <= 0) {
+                return;
+              }
+              if ((pesoObjetivoCtrl.text.trim().isNotEmpty &&
+                      (pesoObjetivo == null || pesoObjetivo <= 0)) ||
+                  (pesoObjetivoPlazoCtrl.text.trim().isNotEmpty &&
+                      (pesoObjetivoPlazo == null || pesoObjetivoPlazo <= 0))) {
                 return;
               }
               await ref
                   .read(bodyProfileProvider.notifier)
-                  .saveProfile(edad: edad, alturaCm: altura);
+                  .saveProfile(
+                    edad: edad,
+                    alturaCm: altura,
+                    nombre: nombreCtrl.text,
+                    pesoObjetivoKg: pesoObjetivo,
+                    pesoObjetivoPlazoSemanas: pesoObjetivoPlazo,
+                    objetivoPrincipal: objetivoCtrl.text,
+                    hambreHabitual: hambreCtrl.text,
+                    saciedadDesayuno: saciedadDesayunoCtrl.text,
+                    saciedadComida: saciedadComidaCtrl.text,
+                    saciedadCena: saciedadCenaCtrl.text,
+                    digestion: digestionCtrl.text,
+                    alimentosQueSientanMal: alimentosCtrl.text,
+                    preferenciasComida: preferenciasCtrl.text,
+                    estadoEmocionalComida: emocionalCtrl.text,
+                  );
               if (!dialogContext.mounted) {
                 return;
               }
@@ -537,6 +703,19 @@ class BodyTrackingScreen extends ConsumerWidget {
       ),
     );
   }
+}
+
+String _formatSleepWindow(int? startMinutes, int? endMinutes) {
+  if (startMinutes == null || endMinutes == null) {
+    return 'sin sincronizar';
+  }
+  return '${_formatClock(startMinutes)}-${_formatClock(endMinutes)}';
+}
+
+String _formatClock(int minutes) {
+  final hours = (minutes ~/ 60).toString().padLeft(2, '0');
+  final mins = (minutes % 60).toString().padLeft(2, '0');
+  return '$hours:$mins';
 }
 
 String _formatDate(DateTime date) {

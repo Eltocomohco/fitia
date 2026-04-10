@@ -1,16 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:isar_community/isar.dart';
+
 import '../../../nutrition/data/models/alimento.dart';
 import '../providers/inventory_provider.dart';
 
 /// Formulario modal para crear un nuevo alimento base.
 class AddFoodModal extends ConsumerStatefulWidget {
   /// Crea un [AddFoodModal].
-  const AddFoodModal({super.key, this.initial});
+  const AddFoodModal({super.key, this.initial, this.prefill});
 
   /// Alimento inicial para modo edición.
   final Alimento? initial;
+
+  /// Datos precargados para alta rápida, por ejemplo desde el escáner.
+  final Alimento? prefill;
 
   @override
   ConsumerState<AddFoodModal> createState() => _AddFoodModalState();
@@ -30,10 +35,12 @@ class _AddFoodModalState extends ConsumerState<AddFoodModal> {
 
   bool get _isEditing => widget.initial != null;
 
+  Alimento? get _seedData => widget.initial ?? widget.prefill;
+
   @override
   void initState() {
     super.initState();
-    final initial = widget.initial;
+    final initial = _seedData;
     _nombreCtrl = TextEditingController(text: initial?.nombre ?? '');
     _kcalCtrl = TextEditingController(
       text: initial == null ? '' : initial.kcal.toStringAsFixed(0),
@@ -98,6 +105,27 @@ class _AddFoodModalState extends ConsumerState<AddFoodModal> {
     return null;
   }
 
+  Future<void> _scanBarcode() async {
+    final scannedFood = await context.push<Alimento>('/inventory/barcode-scanner');
+    if (!mounted || scannedFood == null) {
+      return;
+    }
+
+    setState(() {
+      _nombreCtrl.text = scannedFood.nombre;
+      _kcalCtrl.text = _formatNumber(scannedFood.kcal);
+      _proteinasCtrl.text = _formatNumber(scannedFood.proteinas);
+      _carbsCtrl.text = _formatNumber(scannedFood.carbohidratos);
+      _grasasCtrl.text = _formatNumber(scannedFood.grasas);
+    });
+  }
+
+  String _formatNumber(double value) {
+    return value.truncateToDouble() == value
+        ? value.toStringAsFixed(0)
+        : value.toStringAsFixed(1);
+  }
+
   Future<void> _submit() async {
     final form = _formKey.currentState;
     if (form == null || !form.validate()) {
@@ -159,6 +187,12 @@ class _AddFoodModalState extends ConsumerState<AddFoodModal> {
                 Text(
                   _isEditing ? 'Editar alimento' : 'Nuevo alimento',
                   style: Theme.of(context).textTheme.titleLarge,
+                ),
+                const SizedBox(height: 12),
+                OutlinedButton.icon(
+                  onPressed: _isSaving ? null : _scanBarcode,
+                  icon: const Icon(Icons.qr_code_scanner_outlined),
+                  label: const Text('Escanear código de barras'),
                 ),
                 const SizedBox(height: 12),
                 TextFormField(

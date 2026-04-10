@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../../nutrition/data/models/alimento.dart';
 import '../providers/inventory_provider.dart';
 import '../widgets/add_food_modal.dart';
 
@@ -14,7 +16,29 @@ class InventoryScreen extends ConsumerWidget {
     final inventoryAsync = ref.watch(inventoryProvider);
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Inventario')),
+      appBar: AppBar(
+        title: const Text('Inventario'),
+        actions: [
+          IconButton(
+            tooltip: 'Escanear alimento',
+            onPressed: () async {
+              final scannedFood = await context.push<Alimento>(
+                '/inventory/barcode-scanner',
+              );
+              if (!context.mounted || scannedFood == null) {
+                return;
+              }
+              await showModalBottomSheet<void>(
+                context: context,
+                isScrollControlled: true,
+                showDragHandle: true,
+                builder: (_) => AddFoodModal(prefill: scannedFood),
+              );
+            },
+            icon: const Icon(Icons.qr_code_scanner_outlined),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () {
           showModalBottomSheet<void>(

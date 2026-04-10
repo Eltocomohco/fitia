@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../tracking/presentation/widgets/fasting_widget.dart';
+
 /// Pantalla de usuario con accesos de cuenta y utilidades.
 class ProfileScreen extends StatelessWidget {
   /// Crea un [ProfileScreen].
@@ -9,10 +11,62 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Usuario')),
+      appBar: AppBar(
+        title: const Text('Perfil y ajustes'),
+        actions: [
+          IconButton(
+            tooltip: 'Calendario',
+            onPressed: () => context.push('/calendar'),
+            icon: const Icon(Icons.calendar_month_outlined),
+          ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Row(
+                children: [
+                  CircleAvatar(
+                    radius: 28,
+                    backgroundColor: Theme.of(context)
+                        .colorScheme
+                        .primaryContainer,
+                    child: Icon(
+                      Icons.person_outline,
+                      color: Theme.of(context).colorScheme.onPrimaryContainer,
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Perfil personal',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Ajustes, progreso corporal, hábitos y utilidades generales de tu cuenta.',
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Seguimiento personal',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          const FastingWidget(),
+          const SizedBox(height: 12),
           Card(
             child: ListTile(
               leading: const Icon(Icons.monitor_weight_outlined),
@@ -31,6 +85,20 @@ class ProfileScreen extends StatelessWidget {
               onTap: () => context.push('/daily-goals'),
             ),
           ),
+          const SizedBox(height: 12),
+          Text(
+            'Sistema y utilidades',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 8),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.notifications_active_outlined),
+              title: const Text('Notificaciones'),
+              subtitle: const Text('Recordatorios de agua, comidas, entreno y planificacion'),
+              onTap: () => context.push('/notification-settings'),
+            ),
+          ),
           Card(
             child: ListTile(
               leading: const Icon(Icons.insights_outlined),
@@ -45,6 +113,14 @@ class ProfileScreen extends StatelessWidget {
               title: const Text('Importar JSON'),
               subtitle: const Text('Cargar alimentos y recetas desde JSON'),
               onTap: () => context.push('/import-json'),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.calendar_month_outlined),
+              title: const Text('Calendario'),
+              subtitle: const Text('Vista global del seguimiento diario y semanal'),
+              onTap: () => context.push('/calendar'),
             ),
           ),
         ],

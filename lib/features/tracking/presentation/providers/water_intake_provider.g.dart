@@ -11,13 +11,13 @@ part of 'water_intake_provider.dart';
 /// Notifier para seguimiento de tomas de agua del día.
 
 @ProviderFor(WaterIntake)
-final waterIntakeProvider = WaterIntakeProvider._();
+const waterIntakeProvider = WaterIntakeProvider._();
 
 /// Notifier para seguimiento de tomas de agua del día.
 final class WaterIntakeProvider
     extends $AsyncNotifierProvider<WaterIntake, List<RegistroAgua>> {
   /// Notifier para seguimiento de tomas de agua del día.
-  WaterIntakeProvider._()
+  const WaterIntakeProvider._()
     : super(
         from: null,
         argument: null,
@@ -45,6 +45,7 @@ abstract class _$WaterIntake extends $AsyncNotifier<List<RegistroAgua>> {
   @$mustCallSuper
   @override
   void runBuild() {
+    final created = build();
     final ref =
         this.ref as $Ref<AsyncValue<List<RegistroAgua>>, List<RegistroAgua>>;
     final element =
@@ -55,6 +56,6 @@ abstract class _$WaterIntake extends $AsyncNotifier<List<RegistroAgua>> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    element.handleValue(ref, created);
   }
 }

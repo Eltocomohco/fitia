@@ -49,6 +49,27 @@ class _AddFoodScreenState extends ConsumerState<AddFoodScreen> {
     return null;
   }
 
+  Future<void> _scanBarcode() async {
+    final scannedFood = await context.push<Alimento>('/inventory/barcode-scanner');
+    if (!mounted || scannedFood == null) {
+      return;
+    }
+
+    setState(() {
+      _nombreCtrl.text = scannedFood.nombre;
+      _kcalCtrl.text = _formatNumber(scannedFood.kcal);
+      _proteinasCtrl.text = _formatNumber(scannedFood.proteinas);
+      _carbsCtrl.text = _formatNumber(scannedFood.carbohidratos);
+      _grasasCtrl.text = _formatNumber(scannedFood.grasas);
+    });
+  }
+
+  String _formatNumber(double value) {
+    return value.truncateToDouble() == value
+        ? value.toStringAsFixed(0)
+        : value.toStringAsFixed(1);
+  }
+
   Future<void> _save() async {
     final form = _formKey.currentState;
     if (form == null || !form.validate() || _selectedGroups.isEmpty) {
@@ -91,13 +112,28 @@ class _AddFoodScreenState extends ConsumerState<AddFoodScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Nuevo alimento')),
+      appBar: AppBar(
+        title: const Text('Nuevo alimento'),
+        actions: [
+          IconButton(
+            onPressed: _isSaving ? null : _scanBarcode,
+            tooltip: 'Escanear',
+            icon: const Icon(Icons.qr_code_scanner_outlined),
+          ),
+        ],
+      ),
       body: SafeArea(
         child: Form(
           key: _formKey,
           child: ListView(
             padding: const EdgeInsets.all(16),
             children: [
+              OutlinedButton.icon(
+                onPressed: _isSaving ? null : _scanBarcode,
+                icon: const Icon(Icons.qr_code_scanner_outlined),
+                label: const Text('Escanear código de barras'),
+              ),
+              const SizedBox(height: 16),
               Text(
                 'Valores por 100 g',
                 style: Theme.of(context).textTheme.titleMedium,

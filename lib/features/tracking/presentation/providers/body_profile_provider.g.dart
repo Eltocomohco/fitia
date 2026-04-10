@@ -11,13 +11,13 @@ part of 'body_profile_provider.dart';
 /// Notifier que persiste el perfil corporal en Isar (singleton id=1).
 
 @ProviderFor(BodyProfile)
-final bodyProfileProvider = BodyProfileProvider._();
+const bodyProfileProvider = BodyProfileProvider._();
 
 /// Notifier que persiste el perfil corporal en Isar (singleton id=1).
 final class BodyProfileProvider
     extends $AsyncNotifierProvider<BodyProfile, BodyProfileState> {
   /// Notifier que persiste el perfil corporal en Isar (singleton id=1).
-  BodyProfileProvider._()
+  const BodyProfileProvider._()
     : super(
         from: null,
         argument: null,
@@ -36,7 +36,7 @@ final class BodyProfileProvider
   BodyProfile create() => BodyProfile();
 }
 
-String _$bodyProfileHash() => r'f563643533d5625cc2740b363ca05893219954c6';
+String _$bodyProfileHash() => r'3ba4c2245bf47c511ddf036d8b049d28998c189e';
 
 /// Notifier que persiste el perfil corporal en Isar (singleton id=1).
 
@@ -45,6 +45,7 @@ abstract class _$BodyProfile extends $AsyncNotifier<BodyProfileState> {
   @$mustCallSuper
   @override
   void runBuild() {
+    final created = build();
     final ref =
         this.ref as $Ref<AsyncValue<BodyProfileState>, BodyProfileState>;
     final element =
@@ -55,6 +56,6 @@ abstract class _$BodyProfile extends $AsyncNotifier<BodyProfileState> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    element.handleValue(ref, created);
   }
 }

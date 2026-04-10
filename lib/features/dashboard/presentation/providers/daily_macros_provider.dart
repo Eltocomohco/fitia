@@ -5,6 +5,7 @@ import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:isar_community/isar.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
+import '../../../../core/services/home_widget_service.dart';
 import '../../../progress/data/models/objetivos_nutricionales.dart';
 import '../../../nutrition/data/models/alimento.dart';
 import '../../../nutrition/data/models/receta.dart';
@@ -95,19 +96,20 @@ class DailyMacros extends _$DailyMacros {
       grasas += totals.grasas;
     }
 
-    state = AsyncData(
-      DailyMacrosState(
-        kcalConsumidas: kcal,
-        kcalObjetivo: goals.kcalObjetivo,
-        proteinasGramos: proteinas,
-        proteinasObjetivo: goals.proteinasObjetivo,
-        carbohidratosGramos: carbohidratos,
-        carbohidratosObjetivo: goals.carbohidratosObjetivo,
-        grasasGramos: grasas,
-        grasasObjetivo: goals.grasasObjetivo,
-        aguaObjetivoMl: goals.aguaObjetivoMl,
-      ),
+    final snapshot = DailyMacrosState(
+      kcalConsumidas: kcal,
+      kcalObjetivo: goals.kcalObjetivo,
+      proteinasGramos: proteinas,
+      proteinasObjetivo: goals.proteinasObjetivo,
+      carbohidratosGramos: carbohidratos,
+      carbohidratosObjetivo: goals.carbohidratosObjetivo,
+      grasasGramos: grasas,
+      grasasObjetivo: goals.grasasObjetivo,
+      aguaObjetivoMl: goals.aguaObjetivoMl,
     );
+
+    state = AsyncData(snapshot);
+    await _syncHomeWidget(snapshot);
   }
 
   /// Actualiza objetivos nutricionales del plan diario.
@@ -149,6 +151,8 @@ class DailyMacros extends _$DailyMacros {
         aguaObjetivoMl: safeAgua,
       ),
     );
+
+    await _syncHomeWidget(state.requireValue);
   }
 
   Future<DailyMacrosState> _loadGoals(Isar isar) async {
@@ -264,6 +268,19 @@ class DailyMacros extends _$DailyMacros {
 
   DateTime _truncate(DateTime date) =>
       DateTime(date.year, date.month, date.day);
+
+  Future<void> _syncHomeWidget(DailyMacrosState snapshot) {
+    return HomeWidgetService.updateMacrosWidget(
+      snapshot.kcalConsumidas.round(),
+      snapshot.kcalObjetivo.round(),
+      snapshot.proteinasGramos.round(),
+      snapshot.proteinasObjetivo.round(),
+      snapshot.carbohidratosGramos.round(),
+      snapshot.carbohidratosObjetivo.round(),
+      snapshot.grasasGramos.round(),
+      snapshot.grasasObjetivo.round(),
+    );
+  }
 }
 
 class _MacroTotals {

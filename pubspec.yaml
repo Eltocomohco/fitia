@@ -10,30 +10,52 @@ dependencies:
   flutter:
     sdk: flutter
 
-  flutter_riverpod: ^3.3.1
+  flutter_riverpod: ^3.0.3
   go_router: ^14.8.1
   flutter_animate: ^4.5.0
   lottie: ^3.1.0
-  riverpod_annotation: ^4.0.2
+  riverpod_annotation: ^3.0.3
   isar_community: ^3.3.2
   isar_community_flutter_libs: ^3.3.2
   path_provider: ^2.1.5
   google_fonts: ^6.2.1
   freezed_annotation: ^3.1.0
-  json_annotation: ^4.11.0
+  json_annotation: ^4.9.0
   fl_chart: ^0.68.0
+  wakelock_plus: ^1.2.8
+  flutter_local_notifications: ^17.2.4
+  flutter_timezone: ^4.1.1
+  timezone: ^0.9.4
+  mobile_scanner: ^5.0.0
+  http: ^1.2.0
+  home_widget: ^0.9.0
+  health: ^13.3.1
+  just_audio: ^0.9.36
+  audio_service: ^0.18.12
+  state_notifier: ^1.0.0
+  file_picker: ^8.0.0
+  google_generative_ai: ^0.4.6
+  flutter_dotenv: ^5.1.0
+  flutter_markdown: ^0.7.3
+  permission_handler: ^11.3.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
   build_runner: ^2.4.13
-  riverpod_generator: ^4.0.3
+  riverpod_generator: ^3.0.3
   isar_community_generator: ^3.3.2
-  freezed: ^3.2.5
-  json_serializable: ^6.9.0
+  freezed: ^3.0.6
+  json_serializable: ^6.8.0
+
+dependency_overrides:
+  test: 1.26.3
 
 flutter:
   uses-material-design: true
   assets:
+    - .env
     - assets/animations/
+    - assets/branding/
+    - assets/prompts/gemini_system_role.txt

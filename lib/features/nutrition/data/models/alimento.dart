@@ -39,6 +39,8 @@ class Alimento {
     required this.carbohidratos,
     required this.grasas,
     this.porcionBaseGramos = 100.0,
+    this.stockDisponibleGramos = 0.0,
+    this.stockPersonalDisponibleGramos = 0.0,
     this.grupos = const [],
   });
 
@@ -67,6 +69,12 @@ class Alimento {
 
   /// Tamaño de porción base en gramos.
   double porcionBaseGramos = 100.0;
+
+  /// Cantidad disponible actualmente en despensa/inventario.
+  double stockDisponibleGramos = 0.0;
+
+  /// Cantidad del stock total que realmente se considera disponible para el usuario.
+  double stockPersonalDisponibleGramos = 0.0;
 
   /// Grupos a los que pertenece el alimento para construir recetas por pasos.
   List<String> grupos;

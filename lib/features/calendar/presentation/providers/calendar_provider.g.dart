@@ -11,13 +11,13 @@ part of 'calendar_provider.dart';
 /// Fecha seleccionada en el planificador de calendario.
 
 @ProviderFor(SelectedDateNotifier)
-final selectedDateProvider = SelectedDateNotifierProvider._();
+const selectedDateProvider = SelectedDateNotifierProvider._();
 
 /// Fecha seleccionada en el planificador de calendario.
 final class SelectedDateNotifierProvider
     extends $NotifierProvider<SelectedDateNotifier, DateTime> {
   /// Fecha seleccionada en el planificador de calendario.
-  SelectedDateNotifierProvider._()
+  const SelectedDateNotifierProvider._()
     : super(
         from: null,
         argument: null,
@@ -54,6 +54,7 @@ abstract class _$SelectedDateNotifier extends $Notifier<DateTime> {
   @$mustCallSuper
   @override
   void runBuild() {
+    final created = build();
     final ref = this.ref as $Ref<DateTime, DateTime>;
     final element =
         ref.element
@@ -63,20 +64,20 @@ abstract class _$SelectedDateNotifier extends $Notifier<DateTime> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    element.handleValue(ref, created);
   }
 }
 
 /// Registros diarios de la fecha seleccionada.
 
 @ProviderFor(DailyLogsNotifier)
-final dailyLogsProvider = DailyLogsNotifierProvider._();
+const dailyLogsProvider = DailyLogsNotifierProvider._();
 
 /// Registros diarios de la fecha seleccionada.
 final class DailyLogsNotifierProvider
     extends $AsyncNotifierProvider<DailyLogsNotifier, List<RegistroDiario>> {
   /// Registros diarios de la fecha seleccionada.
-  DailyLogsNotifierProvider._()
+  const DailyLogsNotifierProvider._()
     : super(
         from: null,
         argument: null,
@@ -105,6 +106,7 @@ abstract class _$DailyLogsNotifier
   @$mustCallSuper
   @override
   void runBuild() {
+    final created = build();
     final ref =
         this.ref
             as $Ref<AsyncValue<List<RegistroDiario>>, List<RegistroDiario>>;
@@ -119,20 +121,20 @@ abstract class _$DailyLogsNotifier
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    element.handleValue(ref, created);
   }
 }
 
 /// Días marcados como entrenamiento.
 
 @ProviderFor(TrainingDays)
-final trainingDaysProvider = TrainingDaysProvider._();
+const trainingDaysProvider = TrainingDaysProvider._();
 
 /// Días marcados como entrenamiento.
 final class TrainingDaysProvider
     extends $AsyncNotifierProvider<TrainingDays, Set<int>> {
   /// Días marcados como entrenamiento.
-  TrainingDaysProvider._()
+  const TrainingDaysProvider._()
     : super(
         from: null,
         argument: null,
@@ -160,6 +162,7 @@ abstract class _$TrainingDays extends $AsyncNotifier<Set<int>> {
   @$mustCallSuper
   @override
   void runBuild() {
+    final created = build();
     final ref = this.ref as $Ref<AsyncValue<Set<int>>, Set<int>>;
     final element =
         ref.element
@@ -169,14 +172,14 @@ abstract class _$TrainingDays extends $AsyncNotifier<Set<int>> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    element.handleValue(ref, created);
   }
 }
 
 /// Días con cumplimiento de comida (al menos un registro diario).
 
 @ProviderFor(mealCompletionDays)
-final mealCompletionDaysProvider = MealCompletionDaysProvider._();
+const mealCompletionDaysProvider = MealCompletionDaysProvider._();
 
 /// Días con cumplimiento de comida (al menos un registro diario).
 
@@ -185,7 +188,7 @@ final class MealCompletionDaysProvider
         $FunctionalProvider<AsyncValue<Set<int>>, Set<int>, FutureOr<Set<int>>>
     with $FutureModifier<Set<int>>, $FutureProvider<Set<int>> {
   /// Días con cumplimiento de comida (al menos un registro diario).
-  MealCompletionDaysProvider._()
+  const MealCompletionDaysProvider._()
     : super(
         from: null,
         argument: null,

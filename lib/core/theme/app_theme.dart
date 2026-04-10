@@ -18,6 +18,12 @@ abstract final class AppTheme {
   /// Color de error global.
   static const Color error = Color(0xFFD96C5B);
 
+  /// Fondo principal de la app en modo oscuro.
+  static const Color darkBackground = Color(0xFF121212);
+
+  /// Superficie para tarjetas y contenedores en modo oscuro.
+  static const Color darkSurface = Color(0xFF1E1E1E);
+
   /// `ThemeData` listo para usarse en `MaterialApp.theme`.
   static ThemeData get light {
     final colorScheme =
@@ -67,6 +73,62 @@ abstract final class AppTheme {
         style: ElevatedButton.styleFrom(
           backgroundColor: primary,
           foregroundColor: onBase,
+          elevation: 0,
+          shadowColor: Colors.transparent,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          textStyle: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+      ),
+    );
+  }
+
+  /// `ThemeData` para reaccionar al modo oscuro del sistema.
+  static ThemeData get dark {
+    final colorScheme = const ColorScheme.dark().copyWith(
+      primary: primary,
+      onPrimary: Colors.black,
+      surface: darkSurface,
+      onSurface: Colors.white,
+      error: error,
+      onError: Colors.white,
+    );
+
+    final baseTextTheme = ThemeData.dark(useMaterial3: true).textTheme;
+    final textTheme = GoogleFonts.poppinsTextTheme(
+      baseTextTheme,
+    ).apply(bodyColor: Colors.white, displayColor: Colors.white);
+
+    return ThemeData(
+      useMaterial3: true,
+      fontFamily: GoogleFonts.poppins().fontFamily,
+      colorScheme: colorScheme,
+      scaffoldBackgroundColor: darkBackground,
+      canvasColor: darkBackground,
+      textTheme: textTheme,
+      appBarTheme: AppBarTheme(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        foregroundColor: Colors.white,
+        iconTheme: const IconThemeData(color: Colors.white),
+        titleTextStyle: TextStyle(
+          color: Colors.white,
+          fontSize: 20,
+          fontWeight: FontWeight.w600,
+          fontFamily: GoogleFonts.poppins().fontFamily,
+        ),
+      ),
+      cardTheme: CardThemeData(
+        color: darkSurface,
+        elevation: 0,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      ),
+      elevatedButtonTheme: ElevatedButtonThemeData(
+        style: ElevatedButton.styleFrom(
+          backgroundColor: primary,
+          foregroundColor: Colors.black,
           elevation: 0,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(

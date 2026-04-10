@@ -14,7 +14,7 @@ T _$identity<T>(T value) => value;
 /// @nodoc
 mixin _$BodyProfileState {
 
- int get edad; double get alturaCm;
+ int get edad; double get alturaCm; String get nombre; String get objetivoPrincipal; double? get pesoObjetivoKg; int? get pesoObjetivoPlazoSemanas; String get hambreHabitual; String get saciedadComidas; String get saciedadDesayuno; String get saciedadComida; String get saciedadCena; int? get suenoInicioMinutos; int? get suenoFinMinutos; int get pasosDiarios; int get adherenciaDietaSemanal; int get adherenciaEntrenoSemanal; String get digestion; String get alimentosQueSientanMal; String get preferenciasComida; String get estadoEmocionalComida;
 /// Create a copy of BodyProfileState
 /// with the given fields replaced by the non-null parameter values.
 @JsonKey(includeFromJson: false, includeToJson: false)
@@ -25,16 +25,16 @@ $BodyProfileStateCopyWith<BodyProfileState> get copyWith => _$BodyProfileStateCo
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is BodyProfileState&&(identical(other.edad, edad) || other.edad == edad)&&(identical(other.alturaCm, alturaCm) || other.alturaCm == alturaCm));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is BodyProfileState&&(identical(other.edad, edad) || other.edad == edad)&&(identical(other.alturaCm, alturaCm) || other.alturaCm == alturaCm)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.objetivoPrincipal, objetivoPrincipal) || other.objetivoPrincipal == objetivoPrincipal)&&(identical(other.pesoObjetivoKg, pesoObjetivoKg) || other.pesoObjetivoKg == pesoObjetivoKg)&&(identical(other.pesoObjetivoPlazoSemanas, pesoObjetivoPlazoSemanas) || other.pesoObjetivoPlazoSemanas == pesoObjetivoPlazoSemanas)&&(identical(other.hambreHabitual, hambreHabitual) || other.hambreHabitual == hambreHabitual)&&(identical(other.saciedadComidas, saciedadComidas) || other.saciedadComidas == saciedadComidas)&&(identical(other.saciedadDesayuno, saciedadDesayuno) || other.saciedadDesayuno == saciedadDesayuno)&&(identical(other.saciedadComida, saciedadComida) || other.saciedadComida == saciedadComida)&&(identical(other.saciedadCena, saciedadCena) || other.saciedadCena == saciedadCena)&&(identical(other.suenoInicioMinutos, suenoInicioMinutos) || other.suenoInicioMinutos == suenoInicioMinutos)&&(identical(other.suenoFinMinutos, suenoFinMinutos) || other.suenoFinMinutos == suenoFinMinutos)&&(identical(other.pasosDiarios, pasosDiarios) || other.pasosDiarios == pasosDiarios)&&(identical(other.adherenciaDietaSemanal, adherenciaDietaSemanal) || other.adherenciaDietaSemanal == adherenciaDietaSemanal)&&(identical(other.adherenciaEntrenoSemanal, adherenciaEntrenoSemanal) || other.adherenciaEntrenoSemanal == adherenciaEntrenoSemanal)&&(identical(other.digestion, digestion) || other.digestion == digestion)&&(identical(other.alimentosQueSientanMal, alimentosQueSientanMal) || other.alimentosQueSientanMal == alimentosQueSientanMal)&&(identical(other.preferenciasComida, preferenciasComida) || other.preferenciasComida == preferenciasComida)&&(identical(other.estadoEmocionalComida, estadoEmocionalComida) || other.estadoEmocionalComida == estadoEmocionalComida));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,edad,alturaCm);
+int get hashCode => Object.hashAll([runtimeType,edad,alturaCm,nombre,objetivoPrincipal,pesoObjetivoKg,pesoObjetivoPlazoSemanas,hambreHabitual,saciedadComidas,saciedadDesayuno,saciedadComida,saciedadCena,suenoInicioMinutos,suenoFinMinutos,pasosDiarios,adherenciaDietaSemanal,adherenciaEntrenoSemanal,digestion,alimentosQueSientanMal,preferenciasComida,estadoEmocionalComida]);
 
 @override
 String toString() {
-  return 'BodyProfileState(edad: $edad, alturaCm: $alturaCm)';
+  return 'BodyProfileState(edad: $edad, alturaCm: $alturaCm, nombre: $nombre, objetivoPrincipal: $objetivoPrincipal, pesoObjetivoKg: $pesoObjetivoKg, pesoObjetivoPlazoSemanas: $pesoObjetivoPlazoSemanas, hambreHabitual: $hambreHabitual, saciedadComidas: $saciedadComidas, saciedadDesayuno: $saciedadDesayuno, saciedadComida: $saciedadComida, saciedadCena: $saciedadCena, suenoInicioMinutos: $suenoInicioMinutos, suenoFinMinutos: $suenoFinMinutos, pasosDiarios: $pasosDiarios, adherenciaDietaSemanal: $adherenciaDietaSemanal, adherenciaEntrenoSemanal: $adherenciaEntrenoSemanal, digestion: $digestion, alimentosQueSientanMal: $alimentosQueSientanMal, preferenciasComida: $preferenciasComida, estadoEmocionalComida: $estadoEmocionalComida)';
 }
 
 
@@ -45,7 +45,7 @@ abstract mixin class $BodyProfileStateCopyWith<$Res>  {
   factory $BodyProfileStateCopyWith(BodyProfileState value, $Res Function(BodyProfileState) _then) = _$BodyProfileStateCopyWithImpl;
 @useResult
 $Res call({
- int edad, double alturaCm
+ int edad, double alturaCm, String nombre, String objetivoPrincipal, double? pesoObjetivoKg, int? pesoObjetivoPlazoSemanas, String hambreHabitual, String saciedadComidas, String saciedadDesayuno, String saciedadComida, String saciedadCena, int? suenoInicioMinutos, int? suenoFinMinutos, int pasosDiarios, int adherenciaDietaSemanal, int adherenciaEntrenoSemanal, String digestion, String alimentosQueSientanMal, String preferenciasComida, String estadoEmocionalComida
 });
 
 
@@ -62,11 +62,29 @@ class _$BodyProfileStateCopyWithImpl<$Res>
 
 /// Create a copy of BodyProfileState
 /// with the given fields replaced by the non-null parameter values.
-@pragma('vm:prefer-inline') @override $Res call({Object? edad = null,Object? alturaCm = null,}) {
+@pragma('vm:prefer-inline') @override $Res call({Object? edad = null,Object? alturaCm = null,Object? nombre = null,Object? objetivoPrincipal = null,Object? pesoObjetivoKg = freezed,Object? pesoObjetivoPlazoSemanas = freezed,Object? hambreHabitual = null,Object? saciedadComidas = null,Object? saciedadDesayuno = null,Object? saciedadComida = null,Object? saciedadCena = null,Object? suenoInicioMinutos = freezed,Object? suenoFinMinutos = freezed,Object? pasosDiarios = null,Object? adherenciaDietaSemanal = null,Object? adherenciaEntrenoSemanal = null,Object? digestion = null,Object? alimentosQueSientanMal = null,Object? preferenciasComida = null,Object? estadoEmocionalComida = null,}) {
   return _then(_self.copyWith(
 edad: null == edad ? _self.edad : edad // ignore: cast_nullable_to_non_nullable
 as int,alturaCm: null == alturaCm ? _self.alturaCm : alturaCm // ignore: cast_nullable_to_non_nullable
-as double,
+as double,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
+as String,objetivoPrincipal: null == objetivoPrincipal ? _self.objetivoPrincipal : objetivoPrincipal // ignore: cast_nullable_to_non_nullable
+as String,pesoObjetivoKg: freezed == pesoObjetivoKg ? _self.pesoObjetivoKg : pesoObjetivoKg // ignore: cast_nullable_to_non_nullable
+as double?,pesoObjetivoPlazoSemanas: freezed == pesoObjetivoPlazoSemanas ? _self.pesoObjetivoPlazoSemanas : pesoObjetivoPlazoSemanas // ignore: cast_nullable_to_non_nullable
+as int?,hambreHabitual: null == hambreHabitual ? _self.hambreHabitual : hambreHabitual // ignore: cast_nullable_to_non_nullable
+as String,saciedadComidas: null == saciedadComidas ? _self.saciedadComidas : saciedadComidas // ignore: cast_nullable_to_non_nullable
+as String,saciedadDesayuno: null == saciedadDesayuno ? _self.saciedadDesayuno : saciedadDesayuno // ignore: cast_nullable_to_non_nullable
+as String,saciedadComida: null == saciedadComida ? _self.saciedadComida : saciedadComida // ignore: cast_nullable_to_non_nullable
+as String,saciedadCena: null == saciedadCena ? _self.saciedadCena : saciedadCena // ignore: cast_nullable_to_non_nullable
+as String,suenoInicioMinutos: freezed == suenoInicioMinutos ? _self.suenoInicioMinutos : suenoInicioMinutos // ignore: cast_nullable_to_non_nullable
+as int?,suenoFinMinutos: freezed == suenoFinMinutos ? _self.suenoFinMinutos : suenoFinMinutos // ignore: cast_nullable_to_non_nullable
+as int?,pasosDiarios: null == pasosDiarios ? _self.pasosDiarios : pasosDiarios // ignore: cast_nullable_to_non_nullable
+as int,adherenciaDietaSemanal: null == adherenciaDietaSemanal ? _self.adherenciaDietaSemanal : adherenciaDietaSemanal // ignore: cast_nullable_to_non_nullable
+as int,adherenciaEntrenoSemanal: null == adherenciaEntrenoSemanal ? _self.adherenciaEntrenoSemanal : adherenciaEntrenoSemanal // ignore: cast_nullable_to_non_nullable
+as int,digestion: null == digestion ? _self.digestion : digestion // ignore: cast_nullable_to_non_nullable
+as String,alimentosQueSientanMal: null == alimentosQueSientanMal ? _self.alimentosQueSientanMal : alimentosQueSientanMal // ignore: cast_nullable_to_non_nullable
+as String,preferenciasComida: null == preferenciasComida ? _self.preferenciasComida : preferenciasComida // ignore: cast_nullable_to_non_nullable
+as String,estadoEmocionalComida: null == estadoEmocionalComida ? _self.estadoEmocionalComida : estadoEmocionalComida // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 
@@ -151,10 +169,10 @@ return $default(_that);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int edad,  double alturaCm)?  $default,{required TResult orElse(),}) {final _that = this;
+@optionalTypeArgs TResult maybeWhen<TResult extends Object?>(TResult Function( int edad,  double alturaCm,  String nombre,  String objetivoPrincipal,  double? pesoObjetivoKg,  int? pesoObjetivoPlazoSemanas,  String hambreHabitual,  String saciedadComidas,  String saciedadDesayuno,  String saciedadComida,  String saciedadCena,  int? suenoInicioMinutos,  int? suenoFinMinutos,  int pasosDiarios,  int adherenciaDietaSemanal,  int adherenciaEntrenoSemanal,  String digestion,  String alimentosQueSientanMal,  String preferenciasComida,  String estadoEmocionalComida)?  $default,{required TResult orElse(),}) {final _that = this;
 switch (_that) {
 case _BodyProfileState() when $default != null:
-return $default(_that.edad,_that.alturaCm);case _:
+return $default(_that.edad,_that.alturaCm,_that.nombre,_that.objetivoPrincipal,_that.pesoObjetivoKg,_that.pesoObjetivoPlazoSemanas,_that.hambreHabitual,_that.saciedadComidas,_that.saciedadDesayuno,_that.saciedadComida,_that.saciedadCena,_that.suenoInicioMinutos,_that.suenoFinMinutos,_that.pasosDiarios,_that.adherenciaDietaSemanal,_that.adherenciaEntrenoSemanal,_that.digestion,_that.alimentosQueSientanMal,_that.preferenciasComida,_that.estadoEmocionalComida);case _:
   return orElse();
 
 }
@@ -172,10 +190,10 @@ return $default(_that.edad,_that.alturaCm);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int edad,  double alturaCm)  $default,) {final _that = this;
+@optionalTypeArgs TResult when<TResult extends Object?>(TResult Function( int edad,  double alturaCm,  String nombre,  String objetivoPrincipal,  double? pesoObjetivoKg,  int? pesoObjetivoPlazoSemanas,  String hambreHabitual,  String saciedadComidas,  String saciedadDesayuno,  String saciedadComida,  String saciedadCena,  int? suenoInicioMinutos,  int? suenoFinMinutos,  int pasosDiarios,  int adherenciaDietaSemanal,  int adherenciaEntrenoSemanal,  String digestion,  String alimentosQueSientanMal,  String preferenciasComida,  String estadoEmocionalComida)  $default,) {final _that = this;
 switch (_that) {
 case _BodyProfileState():
-return $default(_that.edad,_that.alturaCm);case _:
+return $default(_that.edad,_that.alturaCm,_that.nombre,_that.objetivoPrincipal,_that.pesoObjetivoKg,_that.pesoObjetivoPlazoSemanas,_that.hambreHabitual,_that.saciedadComidas,_that.saciedadDesayuno,_that.saciedadComida,_that.saciedadCena,_that.suenoInicioMinutos,_that.suenoFinMinutos,_that.pasosDiarios,_that.adherenciaDietaSemanal,_that.adherenciaEntrenoSemanal,_that.digestion,_that.alimentosQueSientanMal,_that.preferenciasComida,_that.estadoEmocionalComida);case _:
   throw StateError('Unexpected subclass');
 
 }
@@ -192,10 +210,10 @@ return $default(_that.edad,_that.alturaCm);case _:
 /// }
 /// ```
 
-@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int edad,  double alturaCm)?  $default,) {final _that = this;
+@optionalTypeArgs TResult? whenOrNull<TResult extends Object?>(TResult? Function( int edad,  double alturaCm,  String nombre,  String objetivoPrincipal,  double? pesoObjetivoKg,  int? pesoObjetivoPlazoSemanas,  String hambreHabitual,  String saciedadComidas,  String saciedadDesayuno,  String saciedadComida,  String saciedadCena,  int? suenoInicioMinutos,  int? suenoFinMinutos,  int pasosDiarios,  int adherenciaDietaSemanal,  int adherenciaEntrenoSemanal,  String digestion,  String alimentosQueSientanMal,  String preferenciasComida,  String estadoEmocionalComida)?  $default,) {final _that = this;
 switch (_that) {
 case _BodyProfileState() when $default != null:
-return $default(_that.edad,_that.alturaCm);case _:
+return $default(_that.edad,_that.alturaCm,_that.nombre,_that.objetivoPrincipal,_that.pesoObjetivoKg,_that.pesoObjetivoPlazoSemanas,_that.hambreHabitual,_that.saciedadComidas,_that.saciedadDesayuno,_that.saciedadComida,_that.saciedadCena,_that.suenoInicioMinutos,_that.suenoFinMinutos,_that.pasosDiarios,_that.adherenciaDietaSemanal,_that.adherenciaEntrenoSemanal,_that.digestion,_that.alimentosQueSientanMal,_that.preferenciasComida,_that.estadoEmocionalComida);case _:
   return null;
 
 }
@@ -207,11 +225,29 @@ return $default(_that.edad,_that.alturaCm);case _:
 
 
 class _BodyProfileState implements BodyProfileState {
-  const _BodyProfileState({this.edad = 34, this.alturaCm = 176.0});
+  const _BodyProfileState({this.edad = 34, this.alturaCm = 176.0, this.nombre = '', this.objetivoPrincipal = '', this.pesoObjetivoKg, this.pesoObjetivoPlazoSemanas, this.hambreHabitual = '', this.saciedadComidas = '', this.saciedadDesayuno = '', this.saciedadComida = '', this.saciedadCena = '', this.suenoInicioMinutos, this.suenoFinMinutos, this.pasosDiarios = 0, this.adherenciaDietaSemanal = 0, this.adherenciaEntrenoSemanal = 0, this.digestion = '', this.alimentosQueSientanMal = '', this.preferenciasComida = '', this.estadoEmocionalComida = ''});
   
 
 @override@JsonKey() final  int edad;
 @override@JsonKey() final  double alturaCm;
+@override@JsonKey() final  String nombre;
+@override@JsonKey() final  String objetivoPrincipal;
+@override final  double? pesoObjetivoKg;
+@override final  int? pesoObjetivoPlazoSemanas;
+@override@JsonKey() final  String hambreHabitual;
+@override@JsonKey() final  String saciedadComidas;
+@override@JsonKey() final  String saciedadDesayuno;
+@override@JsonKey() final  String saciedadComida;
+@override@JsonKey() final  String saciedadCena;
+@override final  int? suenoInicioMinutos;
+@override final  int? suenoFinMinutos;
+@override@JsonKey() final  int pasosDiarios;
+@override@JsonKey() final  int adherenciaDietaSemanal;
+@override@JsonKey() final  int adherenciaEntrenoSemanal;
+@override@JsonKey() final  String digestion;
+@override@JsonKey() final  String alimentosQueSientanMal;
+@override@JsonKey() final  String preferenciasComida;
+@override@JsonKey() final  String estadoEmocionalComida;
 
 /// Create a copy of BodyProfileState
 /// with the given fields replaced by the non-null parameter values.
@@ -223,16 +259,16 @@ _$BodyProfileStateCopyWith<_BodyProfileState> get copyWith => __$BodyProfileStat
 
 @override
 bool operator ==(Object other) {
-  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BodyProfileState&&(identical(other.edad, edad) || other.edad == edad)&&(identical(other.alturaCm, alturaCm) || other.alturaCm == alturaCm));
+  return identical(this, other) || (other.runtimeType == runtimeType&&other is _BodyProfileState&&(identical(other.edad, edad) || other.edad == edad)&&(identical(other.alturaCm, alturaCm) || other.alturaCm == alturaCm)&&(identical(other.nombre, nombre) || other.nombre == nombre)&&(identical(other.objetivoPrincipal, objetivoPrincipal) || other.objetivoPrincipal == objetivoPrincipal)&&(identical(other.pesoObjetivoKg, pesoObjetivoKg) || other.pesoObjetivoKg == pesoObjetivoKg)&&(identical(other.pesoObjetivoPlazoSemanas, pesoObjetivoPlazoSemanas) || other.pesoObjetivoPlazoSemanas == pesoObjetivoPlazoSemanas)&&(identical(other.hambreHabitual, hambreHabitual) || other.hambreHabitual == hambreHabitual)&&(identical(other.saciedadComidas, saciedadComidas) || other.saciedadComidas == saciedadComidas)&&(identical(other.saciedadDesayuno, saciedadDesayuno) || other.saciedadDesayuno == saciedadDesayuno)&&(identical(other.saciedadComida, saciedadComida) || other.saciedadComida == saciedadComida)&&(identical(other.saciedadCena, saciedadCena) || other.saciedadCena == saciedadCena)&&(identical(other.suenoInicioMinutos, suenoInicioMinutos) || other.suenoInicioMinutos == suenoInicioMinutos)&&(identical(other.suenoFinMinutos, suenoFinMinutos) || other.suenoFinMinutos == suenoFinMinutos)&&(identical(other.pasosDiarios, pasosDiarios) || other.pasosDiarios == pasosDiarios)&&(identical(other.adherenciaDietaSemanal, adherenciaDietaSemanal) || other.adherenciaDietaSemanal == adherenciaDietaSemanal)&&(identical(other.adherenciaEntrenoSemanal, adherenciaEntrenoSemanal) || other.adherenciaEntrenoSemanal == adherenciaEntrenoSemanal)&&(identical(other.digestion, digestion) || other.digestion == digestion)&&(identical(other.alimentosQueSientanMal, alimentosQueSientanMal) || other.alimentosQueSientanMal == alimentosQueSientanMal)&&(identical(other.preferenciasComida, preferenciasComida) || other.preferenciasComida == preferenciasComida)&&(identical(other.estadoEmocionalComida, estadoEmocionalComida) || other.estadoEmocionalComida == estadoEmocionalComida));
 }
 
 
 @override
-int get hashCode => Object.hash(runtimeType,edad,alturaCm);
+int get hashCode => Object.hashAll([runtimeType,edad,alturaCm,nombre,objetivoPrincipal,pesoObjetivoKg,pesoObjetivoPlazoSemanas,hambreHabitual,saciedadComidas,saciedadDesayuno,saciedadComida,saciedadCena,suenoInicioMinutos,suenoFinMinutos,pasosDiarios,adherenciaDietaSemanal,adherenciaEntrenoSemanal,digestion,alimentosQueSientanMal,preferenciasComida,estadoEmocionalComida]);
 
 @override
 String toString() {
-  return 'BodyProfileState(edad: $edad, alturaCm: $alturaCm)';
+  return 'BodyProfileState(edad: $edad, alturaCm: $alturaCm, nombre: $nombre, objetivoPrincipal: $objetivoPrincipal, pesoObjetivoKg: $pesoObjetivoKg, pesoObjetivoPlazoSemanas: $pesoObjetivoPlazoSemanas, hambreHabitual: $hambreHabitual, saciedadComidas: $saciedadComidas, saciedadDesayuno: $saciedadDesayuno, saciedadComida: $saciedadComida, saciedadCena: $saciedadCena, suenoInicioMinutos: $suenoInicioMinutos, suenoFinMinutos: $suenoFinMinutos, pasosDiarios: $pasosDiarios, adherenciaDietaSemanal: $adherenciaDietaSemanal, adherenciaEntrenoSemanal: $adherenciaEntrenoSemanal, digestion: $digestion, alimentosQueSientanMal: $alimentosQueSientanMal, preferenciasComida: $preferenciasComida, estadoEmocionalComida: $estadoEmocionalComida)';
 }
 
 
@@ -243,7 +279,7 @@ abstract mixin class _$BodyProfileStateCopyWith<$Res> implements $BodyProfileSta
   factory _$BodyProfileStateCopyWith(_BodyProfileState value, $Res Function(_BodyProfileState) _then) = __$BodyProfileStateCopyWithImpl;
 @override @useResult
 $Res call({
- int edad, double alturaCm
+ int edad, double alturaCm, String nombre, String objetivoPrincipal, double? pesoObjetivoKg, int? pesoObjetivoPlazoSemanas, String hambreHabitual, String saciedadComidas, String saciedadDesayuno, String saciedadComida, String saciedadCena, int? suenoInicioMinutos, int? suenoFinMinutos, int pasosDiarios, int adherenciaDietaSemanal, int adherenciaEntrenoSemanal, String digestion, String alimentosQueSientanMal, String preferenciasComida, String estadoEmocionalComida
 });
 
 
@@ -260,11 +296,29 @@ class __$BodyProfileStateCopyWithImpl<$Res>
 
 /// Create a copy of BodyProfileState
 /// with the given fields replaced by the non-null parameter values.
-@override @pragma('vm:prefer-inline') $Res call({Object? edad = null,Object? alturaCm = null,}) {
+@override @pragma('vm:prefer-inline') $Res call({Object? edad = null,Object? alturaCm = null,Object? nombre = null,Object? objetivoPrincipal = null,Object? pesoObjetivoKg = freezed,Object? pesoObjetivoPlazoSemanas = freezed,Object? hambreHabitual = null,Object? saciedadComidas = null,Object? saciedadDesayuno = null,Object? saciedadComida = null,Object? saciedadCena = null,Object? suenoInicioMinutos = freezed,Object? suenoFinMinutos = freezed,Object? pasosDiarios = null,Object? adherenciaDietaSemanal = null,Object? adherenciaEntrenoSemanal = null,Object? digestion = null,Object? alimentosQueSientanMal = null,Object? preferenciasComida = null,Object? estadoEmocionalComida = null,}) {
   return _then(_BodyProfileState(
 edad: null == edad ? _self.edad : edad // ignore: cast_nullable_to_non_nullable
 as int,alturaCm: null == alturaCm ? _self.alturaCm : alturaCm // ignore: cast_nullable_to_non_nullable
-as double,
+as double,nombre: null == nombre ? _self.nombre : nombre // ignore: cast_nullable_to_non_nullable
+as String,objetivoPrincipal: null == objetivoPrincipal ? _self.objetivoPrincipal : objetivoPrincipal // ignore: cast_nullable_to_non_nullable
+as String,pesoObjetivoKg: freezed == pesoObjetivoKg ? _self.pesoObjetivoKg : pesoObjetivoKg // ignore: cast_nullable_to_non_nullable
+as double?,pesoObjetivoPlazoSemanas: freezed == pesoObjetivoPlazoSemanas ? _self.pesoObjetivoPlazoSemanas : pesoObjetivoPlazoSemanas // ignore: cast_nullable_to_non_nullable
+as int?,hambreHabitual: null == hambreHabitual ? _self.hambreHabitual : hambreHabitual // ignore: cast_nullable_to_non_nullable
+as String,saciedadComidas: null == saciedadComidas ? _self.saciedadComidas : saciedadComidas // ignore: cast_nullable_to_non_nullable
+as String,saciedadDesayuno: null == saciedadDesayuno ? _self.saciedadDesayuno : saciedadDesayuno // ignore: cast_nullable_to_non_nullable
+as String,saciedadComida: null == saciedadComida ? _self.saciedadComida : saciedadComida // ignore: cast_nullable_to_non_nullable
+as String,saciedadCena: null == saciedadCena ? _self.saciedadCena : saciedadCena // ignore: cast_nullable_to_non_nullable
+as String,suenoInicioMinutos: freezed == suenoInicioMinutos ? _self.suenoInicioMinutos : suenoInicioMinutos // ignore: cast_nullable_to_non_nullable
+as int?,suenoFinMinutos: freezed == suenoFinMinutos ? _self.suenoFinMinutos : suenoFinMinutos // ignore: cast_nullable_to_non_nullable
+as int?,pasosDiarios: null == pasosDiarios ? _self.pasosDiarios : pasosDiarios // ignore: cast_nullable_to_non_nullable
+as int,adherenciaDietaSemanal: null == adherenciaDietaSemanal ? _self.adherenciaDietaSemanal : adherenciaDietaSemanal // ignore: cast_nullable_to_non_nullable
+as int,adherenciaEntrenoSemanal: null == adherenciaEntrenoSemanal ? _self.adherenciaEntrenoSemanal : adherenciaEntrenoSemanal // ignore: cast_nullable_to_non_nullable
+as int,digestion: null == digestion ? _self.digestion : digestion // ignore: cast_nullable_to_non_nullable
+as String,alimentosQueSientanMal: null == alimentosQueSientanMal ? _self.alimentosQueSientanMal : alimentosQueSientanMal // ignore: cast_nullable_to_non_nullable
+as String,preferenciasComida: null == preferenciasComida ? _self.preferenciasComida : preferenciasComida // ignore: cast_nullable_to_non_nullable
+as String,estadoEmocionalComida: null == estadoEmocionalComida ? _self.estadoEmocionalComida : estadoEmocionalComida // ignore: cast_nullable_to_non_nullable
+as String,
   ));
 }
 

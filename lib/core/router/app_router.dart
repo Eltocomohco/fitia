@@ -1,22 +1,32 @@
-import 'dart:math' as math;
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../features/ai_chat/data/models/ai_chat_agent.dart';
 import '../../features/calendar/presentation/screens/calendar_screen.dart';
+import '../../features/ai_chat/presentation/screens/gemini_chat_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
+import '../../features/food_hub/presentation/screens/food_hub_screen.dart';
 import '../../features/inventory/presentation/screens/add_food_screen.dart';
+import '../../features/inventory/presentation/screens/barcode_scanner_screen.dart';
 import '../../features/inventory/presentation/screens/inventory_screen.dart';
 import '../../features/meals/presentation/screens/meals_screen.dart';
 import '../../features/recipes/presentation/screens/recipe_builder_screen.dart';
 import '../../features/recipes/presentation/screens/recipe_screen.dart';
 import '../../features/shopping/presentation/screens/shopping_list_screen.dart';
 import '../../features/tracking/presentation/screens/body_tracking_screen.dart';
+import '../../features/training_hub/presentation/screens/training_hub_screen.dart';
 import '../../features/user/presentation/screens/import_json_screen.dart';
 import '../../features/user/presentation/screens/daily_goals_screen.dart';
+import '../../features/user/presentation/screens/notification_settings_screen.dart';
 import '../../features/user/presentation/screens/profile_screen.dart';
 import '../../features/user/presentation/screens/reports_screen.dart';
+import '../../features/workouts/presentation/screens/active_workout_screen.dart';
+import '../../features/workouts/presentation/screens/workout_audio_screen.dart';
+import '../../features/workouts/presentation/screens/workout_catalog_screen.dart';
+import '../../features/workouts/presentation/screens/workout_history_screen.dart';
+import '../../features/workouts/presentation/screens/workout_routine_detail_screen.dart';
+import '../../features/workouts/presentation/screens/workout_routine_editor_screen.dart';
 import '../navigation/main_shell_scaffold.dart';
 
 /// Rutas con estructura declarativa para la app de nutrición.
@@ -36,24 +46,48 @@ final appRouterProvider = Provider<GoRouter>((ref) {
                 _bookPageTransition(state, const DashboardScreen()),
           ),
           GoRoute(
-            path: '/calendar',
-            name: 'calendar',
+            path: '/food',
+            name: 'food',
             pageBuilder: (context, state) =>
-                _bookPageTransition(state, const CalendarScreen()),
+                _bookPageTransition(state, const FoodHubScreen()),
           ),
           GoRoute(
-            path: '/meals',
-            name: 'meals',
+            path: '/training',
+            name: 'training',
             pageBuilder: (context, state) =>
-                _bookPageTransition(state, const MealsScreen()),
+                _bookPageTransition(state, const TrainingHubScreen()),
           ),
           GoRoute(
-            path: '/profile',
-            name: 'profile',
-            pageBuilder: (context, state) =>
-                _bookPageTransition(state, const ProfileScreen()),
+            path: '/ai-chat',
+            name: 'aiChat',
+            pageBuilder: (context, state) => _bookPageTransition(
+              state,
+              GeminiChatScreen(
+                initialAgent: parseAiChatAgent(
+                  state.uri.queryParameters['agent'],
+                ),
+              ),
+            ),
           ),
         ],
+      ),
+      GoRoute(
+        path: '/profile',
+        name: 'profile',
+        pageBuilder: (context, state) =>
+            _bookPageTransition(state, const ProfileScreen()),
+      ),
+      GoRoute(
+        path: '/calendar',
+        name: 'calendar',
+        pageBuilder: (context, state) =>
+            _bookPageTransition(state, const CalendarScreen()),
+      ),
+      GoRoute(
+        path: '/meals',
+        name: 'meals',
+        pageBuilder: (context, state) =>
+            _bookPageTransition(state, const MealsScreen()),
       ),
       GoRoute(
         path: '/inventory',
@@ -80,6 +114,66 @@ final appRouterProvider = Provider<GoRouter>((ref) {
             _bookPageTransition(state, const ShoppingListScreen()),
       ),
       GoRoute(
+        path: '/workouts/active',
+        name: 'activeWorkout',
+        pageBuilder: (context, state) =>
+            _bookPageTransition(state, const ActiveWorkoutScreen()),
+      ),
+      GoRoute(
+        path: '/workouts/new',
+        name: 'workoutNew',
+        pageBuilder: (context, state) =>
+            _bookPageTransition(state, const WorkoutRoutineEditorScreen()),
+      ),
+      GoRoute(
+        path: '/workouts',
+        name: 'workouts',
+        pageBuilder: (context, state) =>
+            _bookPageTransition(state, const WorkoutCatalogScreen()),
+      ),
+      GoRoute(
+        path: '/player',
+        name: 'player',
+        pageBuilder: (context, state) =>
+            _bookPageTransition(state, const WorkoutAudioScreen()),
+      ),
+      GoRoute(
+        path: '/workouts/history',
+        name: 'workoutHistory',
+        pageBuilder: (context, state) =>
+            _bookPageTransition(state, const WorkoutHistoryScreen()),
+      ),
+      GoRoute(
+        path: '/workouts/routine/:id',
+        name: 'workoutRoutineDetail',
+        pageBuilder: (context, state) {
+          final routineId = int.tryParse(state.pathParameters['id'] ?? '');
+          if (routineId == null) {
+            return _bookPageTransition(state, const WorkoutCatalogScreen());
+          }
+
+          return _bookPageTransition(
+            state,
+            WorkoutRoutineDetailScreen(routineId: routineId),
+          );
+        },
+      ),
+      GoRoute(
+        path: '/workouts/routine/:id/edit',
+        name: 'workoutRoutineEdit',
+        pageBuilder: (context, state) {
+          final routineId = int.tryParse(state.pathParameters['id'] ?? '');
+          if (routineId == null) {
+            return _bookPageTransition(state, const WorkoutCatalogScreen());
+          }
+
+          return _bookPageTransition(
+            state,
+            WorkoutRoutineEditorScreen(routineId: routineId),
+          );
+        },
+      ),
+      GoRoute(
         path: '/inventory/new-recipe',
         name: 'newRecipe',
         pageBuilder: (context, state) =>
@@ -96,6 +190,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'newFood',
         pageBuilder: (context, state) =>
             _bookPageTransition(state, const AddFoodScreen()),
+      ),
+      GoRoute(
+        path: '/inventory/barcode-scanner',
+        name: 'barcodeScanner',
+        pageBuilder: (context, state) =>
+            _bookPageTransition(state, const BarcodeScannerScreen()),
       ),
       GoRoute(
         path: '/reports',
@@ -115,6 +215,12 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         pageBuilder: (context, state) =>
             _bookPageTransition(state, const ImportJsonScreen()),
       ),
+      GoRoute(
+        path: '/notification-settings',
+        name: 'notificationSettings',
+        pageBuilder: (context, state) =>
+            _bookPageTransition(state, const NotificationSettingsScreen()),
+      ),
     ],
   );
 });
@@ -126,40 +232,23 @@ CustomTransitionPage<void> _bookPageTransition(
   return CustomTransitionPage<void>(
     key: state.pageKey,
     child: child,
-    transitionDuration: const Duration(milliseconds: 520),
-    reverseTransitionDuration: const Duration(milliseconds: 420),
+    transitionDuration: const Duration(milliseconds: 180),
+    reverseTransitionDuration: const Duration(milliseconds: 140),
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
       final curved = CurvedAnimation(
         parent: animation,
-        curve: Curves.easeOutCubic,
-        reverseCurve: Curves.easeInCubic,
+        curve: Curves.easeOut,
+        reverseCurve: Curves.easeIn,
       );
 
       final slide = Tween<Offset>(
-        begin: const Offset(0.8, 0),
+        begin: const Offset(0.03, 0),
         end: Offset.zero,
       ).animate(curved);
 
-      final rotation = Tween<double>(
-        begin: -math.pi / 8,
-        end: 0,
-      ).animate(curved);
-
-      return SlideTransition(
-        position: slide,
-        child: AnimatedBuilder(
-          animation: rotation,
-          child: child,
-          builder: (context, widgetChild) {
-            return Transform(
-              alignment: Alignment.centerRight,
-              transform: Matrix4.identity()
-                ..setEntry(3, 2, 0.0012)
-                ..rotateY(rotation.value),
-              child: widgetChild,
-            );
-          },
-        ),
+      return FadeTransition(
+        opacity: curved,
+        child: SlideTransition(position: slide, child: child),
       );
     },
   );

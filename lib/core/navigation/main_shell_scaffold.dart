@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 /// Contenedor principal con navegación inferior persistente.
-class MainShellScaffold extends StatelessWidget {
+class MainShellScaffold extends StatefulWidget {
   /// Crea un [MainShellScaffold].
   const MainShellScaffold({
     required this.child,
@@ -16,19 +16,30 @@ class MainShellScaffold extends StatelessWidget {
   /// Ubicación actual para calcular índice seleccionado.
   final String location;
 
+  @override
+  State<MainShellScaffold> createState() => _MainShellScaffoldState();
+}
+
+class _MainShellScaffoldState extends State<MainShellScaffold> {
+  DateTime? _lastBackPressAt;
+
   static const _tabs = <_BottomTab>[
     _BottomTab(label: 'Hoy', icon: Icons.today_outlined, path: '/dashboard'),
     _BottomTab(
-      label: 'Calendario',
-      icon: Icons.calendar_month_outlined,
-      path: '/calendar',
+      label: 'Comida',
+      icon: Icons.restaurant_menu_outlined,
+      path: '/food',
     ),
     _BottomTab(
-      label: 'Comidas',
-      icon: Icons.restaurant_menu_outlined,
-      path: '/meals',
+      label: 'Entreno',
+      icon: Icons.sports_gymnastics_outlined,
+      path: '/training',
     ),
-    _BottomTab(label: 'Usuario', icon: Icons.person_outline, path: '/profile'),
+    _BottomTab(
+      label: 'Chat',
+      icon: Icons.smart_toy_outlined,
+      path: '/ai-chat',
+    ),
   ];
 
   int _locationToIndex(String currentLocation) {
@@ -41,19 +52,60 @@ class MainShellScaffold extends StatelessWidget {
     return 0;
   }
 
+  bool _isRootTabLocation(String currentLocation) {
+    return _tabs.any((tab) => tab.path == currentLocation);
+  }
+
+  Future<bool> _handleWillPop() async {
+    if (!_isRootTabLocation(widget.location)) {
+      return true;
+    }
+
+    final now = DateTime.now();
+    if (_lastBackPressAt != null &&
+        now.difference(_lastBackPressAt!) <= const Duration(seconds: 2)) {
+      return true;
+    }
+
+    _lastBackPressAt = now;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Pulsa otra vez atrás para salir'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    return false;
+  }
+
   @override
   Widget build(BuildContext context) {
-    final currentIndex = _locationToIndex(location);
+    final currentIndex = _locationToIndex(widget.location);
 
-    return Scaffold(
-      body: child,
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: currentIndex,
-        onDestinationSelected: (index) => context.go(_tabs[index].path),
-        destinations: [
-          for (final tab in _tabs)
-            NavigationDestination(icon: Icon(tab.icon), label: tab.label),
-        ],
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) async {
+        if (didPop) {
+          return;
+        }
+
+        final navigator = Navigator.of(context);
+        final shouldPop = await _handleWillPop();
+        if (shouldPop && mounted) {
+          navigator.pop(result);
+        }
+      },
+      child: Scaffold(
+        body: widget.child,
+        bottomNavigationBar: NavigationBar(
+          selectedIndex: currentIndex,
+          onDestinationSelected: (index) => context.go(_tabs[index].path),
+          destinations: [
+            for (final tab in _tabs)
+              NavigationDestination(icon: Icon(tab.icon), label: tab.label),
+          ],
+        ),
       ),
     );
   }

@@ -11,13 +11,13 @@ part of 'recipe_provider.dart';
 /// Notifier para consultar recetas persistidas en Isar.
 
 @ProviderFor(RecipeListNotifier)
-final recipeListProvider = RecipeListNotifierProvider._();
+const recipeListProvider = RecipeListNotifierProvider._();
 
 /// Notifier para consultar recetas persistidas en Isar.
 final class RecipeListNotifierProvider
     extends $AsyncNotifierProvider<RecipeListNotifier, List<Receta>> {
   /// Notifier para consultar recetas persistidas en Isar.
-  RecipeListNotifierProvider._()
+  const RecipeListNotifierProvider._()
     : super(
         from: null,
         argument: null,
@@ -46,6 +46,7 @@ abstract class _$RecipeListNotifier extends $AsyncNotifier<List<Receta>> {
   @$mustCallSuper
   @override
   void runBuild() {
+    final created = build();
     final ref = this.ref as $Ref<AsyncValue<List<Receta>>, List<Receta>>;
     final element =
         ref.element
@@ -55,20 +56,20 @@ abstract class _$RecipeListNotifier extends $AsyncNotifier<List<Receta>> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    element.handleValue(ref, created);
   }
 }
 
 /// Notifier para gestionar el estado temporal de creación de recetas.
 
 @ProviderFor(RecipeBuilderNotifier)
-final recipeBuilderProvider = RecipeBuilderNotifierProvider._();
+const recipeBuilderProvider = RecipeBuilderNotifierProvider._();
 
 /// Notifier para gestionar el estado temporal de creación de recetas.
 final class RecipeBuilderNotifierProvider
     extends $NotifierProvider<RecipeBuilderNotifier, RecipeBuilderState> {
   /// Notifier para gestionar el estado temporal de creación de recetas.
-  RecipeBuilderNotifierProvider._()
+  const RecipeBuilderNotifierProvider._()
     : super(
         from: null,
         argument: null,
@@ -105,6 +106,7 @@ abstract class _$RecipeBuilderNotifier extends $Notifier<RecipeBuilderState> {
   @$mustCallSuper
   @override
   void runBuild() {
+    final created = build();
     final ref = this.ref as $Ref<RecipeBuilderState, RecipeBuilderState>;
     final element =
         ref.element
@@ -114,6 +116,6 @@ abstract class _$RecipeBuilderNotifier extends $Notifier<RecipeBuilderState> {
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    element.handleValue(ref, created);
   }
 }

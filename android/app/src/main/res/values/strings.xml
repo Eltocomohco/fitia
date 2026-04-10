@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="macros_widget_description">Resumen diario de macros Fitora</string>
+    <string name="macros_widget_label">Fitora Macros</string>
+    <string name="music_widget_description">Estado actual del reproductor de entrenamiento</string>
+    <string name="music_widget_label">Fitora Música</string>
+    <string name="shopping_widget_description">Resumen de la lista de la compra semanal</string>
+    <string name="shopping_widget_label">Fitora Compra</string>
+</resources>

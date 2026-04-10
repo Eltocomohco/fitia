@@ -1,0 +1,10 @@
+Propuesta de marca: Fitora
+Direccion visual: saludable minimalista
+Simbolo: gota + hoja integrada
+Paleta base:
+- crema suave: #F2E9DD
+- negro profundo: #111111
+
+Uso recomendado:
+- este SVG como maestro para exportar launcher icons Android/iOS
+- variante monocroma para splash, ajustes y material promocional

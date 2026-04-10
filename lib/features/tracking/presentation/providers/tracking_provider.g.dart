@@ -11,14 +11,14 @@ part of 'tracking_provider.dart';
 /// Notifier para el histórico de métricas corporales.
 
 @ProviderFor(BodyTrackingNotifier)
-final bodyTrackingProvider = BodyTrackingNotifierProvider._();
+const bodyTrackingProvider = BodyTrackingNotifierProvider._();
 
 /// Notifier para el histórico de métricas corporales.
 final class BodyTrackingNotifierProvider
     extends
         $AsyncNotifierProvider<BodyTrackingNotifier, List<MetricaCorporal>> {
   /// Notifier para el histórico de métricas corporales.
-  BodyTrackingNotifierProvider._()
+  const BodyTrackingNotifierProvider._()
     : super(
         from: null,
         argument: null,
@@ -48,6 +48,7 @@ abstract class _$BodyTrackingNotifier
   @$mustCallSuper
   @override
   void runBuild() {
+    final created = build();
     final ref =
         this.ref
             as $Ref<AsyncValue<List<MetricaCorporal>>, List<MetricaCorporal>>;
@@ -62,6 +63,6 @@ abstract class _$BodyTrackingNotifier
               Object?,
               Object?
             >;
-    element.handleCreate(ref, build);
+    element.handleValue(ref, created);
   }
 }
