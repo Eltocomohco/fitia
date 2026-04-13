@@ -3,10 +3,15 @@ import 'package:flutter_animate/flutter_animate.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../data/models/checkin_animo.dart';
+import '../../data/models/tarea_hoy.dart';
 import '../../../tracking/presentation/providers/water_intake_provider.dart';
 import '../providers/daily_macros_provider.dart';
 import '../providers/metabolic_adjustment_provider.dart';
+import '../providers/today_hub_provider.dart';
 import '../widgets/health_connect_card.dart';
+import '../../../workouts/presentation/providers/audio_library_provider.dart';
+import '../../../workouts/presentation/providers/audio_provider.dart';
 
 /// Pantalla principal con resumen diario de nutrición y comidas registradas.
 class DashboardScreen extends ConsumerWidget {
@@ -17,6 +22,9 @@ class DashboardScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final macrosAsync = ref.watch(dailyMacrosProvider);
     final waterAsync = ref.watch(waterIntakeProvider);
+    final todayHubAsync = ref.watch(todayHubProvider);
+    final audioState = ref.watch(workoutAudioProvider);
+    final audioLibraryAsync = ref.watch(audioLibraryProvider);
     final metabolicSuggestion = ref.watch(
       metabolicAdjustmentSuggestionProvider,
     );
@@ -61,6 +69,51 @@ class DashboardScreen extends ConsumerWidget {
             _MetabolicAlertCard(suggestion: metabolicSuggestion),
             const SizedBox(height: 12),
           ],
+          const _TodayQuickActions(),
+          const SizedBox(height: 16),
+          todayHubAsync.when(
+            loading: () => const _TodayHubLoadingCard(),
+            error: (_, _) => const _InlineErrorCard(
+              message: 'No se pudo cargar el foco diario.',
+            ),
+            data: (snapshot) {
+              final playlistCount =
+                  audioLibraryAsync.asData?.value.playlists.length ?? 0;
+              return Column(
+                children: [
+                  _TodayPulseCard(
+                    pendingTasks: snapshot.pendingTaskCount,
+                    completedTasks: snapshot.completedTaskCount,
+                    completedWorkouts: snapshot.completedWorkoutCount,
+                    hasActiveWorkout: snapshot.hasActiveWorkout,
+                    playlistCount: playlistCount,
+                    audioTitle: audioState.title,
+                    isAudioPlaying: audioState.isPlaying,
+                  ),
+                  const SizedBox(height: 12),
+                  _TodayTasksCard(
+                    tasks: snapshot.tasks,
+                    pendingTasks: snapshot.pendingTaskCount,
+                    completedTasks: snapshot.completedTaskCount,
+                    onAddTask: () => _showAddTaskDialog(context, ref),
+                    onToggleTask: (taskId) => ref
+                        .read(todayHubProvider.notifier)
+                        .toggleTask(taskId),
+                    onDeleteTask: (taskId) => ref
+                        .read(todayHubProvider.notifier)
+                        .deleteTask(taskId),
+                  ),
+                  const SizedBox(height: 12),
+                  _MoodCheckInCard(
+                    latestCheckIn: snapshot.latestCheckIn,
+                    onOpenCheckIn: () =>
+                        _showMoodCheckInDialog(context, ref, snapshot.latestCheckIn),
+                  ),
+                ],
+              );
+            },
+          ),
+          const SizedBox(height: 16),
           macrosAsync.when(
             loading: () => const _DashboardLoadingSkeleton(),
             error: (_, _) => const Padding(
@@ -376,6 +429,377 @@ class _DashboardLoadingSkeleton extends StatelessWidget {
   }
 }
 
+class _TodayQuickActions extends StatelessWidget {
+  const _TodayQuickActions();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Ahora mismo', style: Theme.of(context).textTheme.titleLarge),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: const [
+            _QuickActionTile(
+              label: 'Comida',
+              subtitle: 'Plan y diario',
+              icon: Icons.restaurant_menu_outlined,
+              route: '/food',
+            ),
+            _QuickActionTile(
+              label: 'Entreno',
+              subtitle: 'Rutinas y sesion',
+              icon: Icons.sports_gymnastics_outlined,
+              route: '/training',
+            ),
+            _QuickActionTile(
+              label: 'Boss',
+              subtitle: 'Decide que toca',
+              icon: Icons.smart_toy_outlined,
+              route: '/ai-chat?agent=boss',
+            ),
+            _QuickActionTile(
+              label: 'Musica',
+              subtitle: 'Abrir player',
+              icon: Icons.library_music_outlined,
+              route: '/player',
+            ),
+            _QuickActionTile(
+              label: 'Tareas',
+              subtitle: 'Plan de ejecucion',
+              icon: Icons.checklist_outlined,
+              route: '/tasks',
+            ),
+            _QuickActionTile(
+              label: 'Mente',
+              subtitle: 'Check-in y energia',
+              icon: Icons.self_improvement_outlined,
+              route: '/mental-checkin',
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _QuickActionTile extends StatelessWidget {
+  const _QuickActionTile({
+    required this.label,
+    required this.subtitle,
+    required this.icon,
+    required this.route,
+  });
+
+  final String label;
+  final String subtitle;
+  final IconData icon;
+  final String route;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 160,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () => context.push(route),
+        child: Ink(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(18),
+            color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(icon),
+              const SizedBox(height: 12),
+              Text(label, style: Theme.of(context).textTheme.titleSmall),
+              const SizedBox(height: 4),
+              Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _TodayPulseCard extends StatelessWidget {
+  const _TodayPulseCard({
+    required this.pendingTasks,
+    required this.completedTasks,
+    required this.completedWorkouts,
+    required this.hasActiveWorkout,
+    required this.playlistCount,
+    required this.audioTitle,
+    required this.isAudioPlaying,
+  });
+
+  final int pendingTasks;
+  final int completedTasks;
+  final int completedWorkouts;
+  final bool hasActiveWorkout;
+  final int playlistCount;
+  final String audioTitle;
+  final bool isAudioPlaying;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Pulso del dia', style: theme.textTheme.titleMedium),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _PulseChip(
+                  label: '$pendingTasks pendientes',
+                  icon: Icons.flag_outlined,
+                ),
+                _PulseChip(
+                  label: '$completedTasks hechas',
+                  icon: Icons.task_alt_outlined,
+                ),
+                _PulseChip(
+                  label: '$completedWorkouts entrenos',
+                  icon: Icons.fitness_center_outlined,
+                ),
+                _PulseChip(
+                  label: hasActiveWorkout ? 'Sesion activa' : 'Sin sesion activa',
+                  icon: hasActiveWorkout
+                      ? Icons.play_circle_outline
+                      : Icons.pause_circle_outline,
+                ),
+                _PulseChip(
+                  label: '$playlistCount playlists',
+                  icon: Icons.queue_music_outlined,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              isAudioPlaying ? 'Suena ahora' : 'Audio listo',
+              style: theme.textTheme.labelLarge,
+            ),
+            const SizedBox(height: 4),
+            Text(audioTitle, style: theme.textTheme.bodyMedium),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _PulseChip extends StatelessWidget {
+  const _PulseChip({required this.label, required this.icon});
+
+  final String label;
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(avatar: Icon(icon, size: 18), label: Text(label));
+  }
+}
+
+class _TodayTasksCard extends StatelessWidget {
+  const _TodayTasksCard({
+    required this.tasks,
+    required this.pendingTasks,
+    required this.completedTasks,
+    required this.onAddTask,
+    required this.onToggleTask,
+    required this.onDeleteTask,
+  });
+
+  final List<TareaHoy> tasks;
+  final int pendingTasks;
+  final int completedTasks;
+  final VoidCallback onAddTask;
+  final Future<void> Function(int taskId) onToggleTask;
+  final Future<void> Function(int taskId) onDeleteTask;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text('Foco del dia', style: theme.textTheme.titleMedium),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: onAddTask,
+                  icon: const Icon(Icons.add_task_outlined),
+                  label: const Text('Nueva'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '$pendingTasks pendientes · $completedTasks completadas',
+              style: theme.textTheme.bodySmall,
+            ),
+            const SizedBox(height: 12),
+            if (tasks.isEmpty)
+              const Text(
+                'Todavia no has definido nada para hoy. Si quieres abrir la app mas, aqui tiene que vivir lo que no puedes olvidar.',
+              )
+            else
+              for (final task in tasks.take(5))
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: Checkbox(
+                    value: task.completada,
+                    onChanged: (_) => onToggleTask(task.id),
+                  ),
+                  title: Text(
+                    task.titulo,
+                    style: task.completada
+                        ? const TextStyle(decoration: TextDecoration.lineThrough)
+                        : null,
+                  ),
+                  trailing: IconButton(
+                    tooltip: 'Eliminar',
+                    onPressed: () => onDeleteTask(task.id),
+                    icon: const Icon(Icons.delete_outline),
+                  ),
+                ),
+            if (tasks.length > 5)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'Hay ${tasks.length - 5} tareas mas guardadas para hoy.',
+                  style: theme.textTheme.bodySmall,
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MoodCheckInCard extends StatelessWidget {
+  const _MoodCheckInCard({
+    required this.latestCheckIn,
+    required this.onOpenCheckIn,
+  });
+
+  final CheckinAnimo? latestCheckIn;
+  final VoidCallback onOpenCheckIn;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Check-in mental',
+                    style: theme.textTheme.titleMedium,
+                  ),
+                ),
+                OutlinedButton.icon(
+                  onPressed: onOpenCheckIn,
+                  icon: const Icon(Icons.psychology_alt_outlined),
+                  label: Text(latestCheckIn == null ? 'Registrar' : 'Actualizar'),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            if (latestCheckIn == null)
+              const Text(
+                'Sin registro hoy. Si quieres que Fitia sea tu app central, tambien tiene que medir como llegas al dia.',
+              )
+            else ...[
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  _PulseChip(
+                    label: _moodLabel(latestCheckIn!.estado),
+                    icon: _moodIcon(latestCheckIn!.estado),
+                  ),
+                  _PulseChip(
+                    label: 'Energia ${latestCheckIn!.energia}/5',
+                    icon: Icons.bolt_outlined,
+                  ),
+                ],
+              ),
+              if ((latestCheckIn!.nota ?? '').isNotEmpty) ...[
+                const SizedBox(height: 10),
+                Text(latestCheckIn!.nota!, style: theme.textTheme.bodyMedium),
+              ],
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _TodayHubLoadingCard extends StatelessWidget {
+  const _TodayHubLoadingCard();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Card(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            ),
+            SizedBox(width: 12),
+            Expanded(child: Text('Cargando foco diario...')),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _InlineErrorCard extends StatelessWidget {
+  const _InlineErrorCard({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Text(message),
+      ),
+    );
+  }
+}
+
 class _MetabolicAlertCard extends StatelessWidget {
   const _MetabolicAlertCard({required this.suggestion});
 
@@ -457,5 +881,154 @@ String _weekdayLabel(int weekday) {
     DateTime.saturday => 'Sábado',
     DateTime.sunday => 'Domingo',
     _ => 'Día',
+  };
+}
+
+Future<void> _showAddTaskDialog(BuildContext context, WidgetRef ref) async {
+  final controller = TextEditingController();
+
+  final shouldSave = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        title: const Text('Nueva tarea de hoy'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          textInputAction: TextInputAction.done,
+          decoration: const InputDecoration(
+            labelText: 'Que no se te puede escapar hoy',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(dialogContext).pop(false),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.of(dialogContext).pop(true),
+            child: const Text('Guardar'),
+          ),
+        ],
+      );
+    },
+  );
+
+  if (shouldSave == true) {
+    await ref.read(todayHubProvider.notifier).addTask(controller.text);
+  }
+  controller.dispose();
+}
+
+Future<void> _showMoodCheckInDialog(
+  BuildContext context,
+  WidgetRef ref,
+  CheckinAnimo? current,
+) async {
+  var selectedMood = current?.estado ?? EstadoAnimo.estable;
+  var energy = (current?.energia ?? 3).toDouble();
+  final noteController = TextEditingController(text: current?.nota ?? '');
+
+  final shouldSave = await showDialog<bool>(
+    context: context,
+    builder: (dialogContext) {
+      return StatefulBuilder(
+        builder: (context, setState) {
+          return AlertDialog(
+            title: const Text('Check-in de hoy'),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  DropdownButtonFormField<EstadoAnimo>(
+                    initialValue: selectedMood,
+                    decoration: const InputDecoration(labelText: 'Como llegas'),
+                    items: EstadoAnimo.values
+                        .map(
+                          (mood) => DropdownMenuItem<EstadoAnimo>(
+                            value: mood,
+                            child: Text(_moodLabel(mood)),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (value) {
+                      if (value == null) {
+                        return;
+                      }
+                      setState(() {
+                        selectedMood = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  Text('Energia ${energy.round()}/5'),
+                  Slider(
+                    value: energy,
+                    min: 1,
+                    max: 5,
+                    divisions: 4,
+                    label: '${energy.round()}',
+                    onChanged: (value) {
+                      setState(() {
+                        energy = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  TextField(
+                    controller: noteController,
+                    maxLines: 3,
+                    decoration: const InputDecoration(
+                      labelText: 'Nota rapida',
+                      hintText: 'Que te esta drenando o que te mantiene fino',
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.of(dialogContext).pop(false),
+                child: const Text('Cancelar'),
+              ),
+              FilledButton(
+                onPressed: () => Navigator.of(dialogContext).pop(true),
+                child: const Text('Guardar'),
+              ),
+            ],
+          );
+        },
+      );
+    },
+  );
+
+  if (shouldSave == true) {
+    await ref.read(todayHubProvider.notifier).saveMood(
+      estado: selectedMood,
+      energia: energy.round(),
+      note: noteController.text,
+    );
+  }
+  noteController.dispose();
+}
+
+String _moodLabel(EstadoAnimo mood) {
+  return switch (mood) {
+    EstadoAnimo.hundido => 'Hundido',
+    EstadoAnimo.bajo => 'Bajo',
+    EstadoAnimo.estable => 'Estable',
+    EstadoAnimo.bien => 'Bien',
+    EstadoAnimo.fuerte => 'Fuerte',
+  };
+}
+
+IconData _moodIcon(EstadoAnimo mood) {
+  return switch (mood) {
+    EstadoAnimo.hundido => Icons.sentiment_very_dissatisfied_outlined,
+    EstadoAnimo.bajo => Icons.sentiment_dissatisfied_outlined,
+    EstadoAnimo.estable => Icons.sentiment_neutral_outlined,
+    EstadoAnimo.bien => Icons.sentiment_satisfied_alt_outlined,
+    EstadoAnimo.fuerte => Icons.sentiment_very_satisfied_outlined,
   };
 }

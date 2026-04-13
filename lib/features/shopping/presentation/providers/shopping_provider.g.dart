@@ -168,7 +168,7 @@ final class ShoppingManualItemsProvider
 }
 
 String _$shoppingManualItemsHash() =>
-    r'c124215fba683dce3c65879a400b543d67e81ff3';
+    r'90f0c81734fd70df238ceaf7b403399d6bc1f446';
 
 final class ShoppingManualItemsFamily extends $Family
     with
@@ -274,7 +274,7 @@ final class ShoppingListNotifierProvider
 }
 
 String _$shoppingListNotifierHash() =>
-    r'53d60953e77bd571d7ccedd8c12c559e9fac0288';
+    r'1911794f05ee7cf982949415683697e4f6656396';
 
 /// Consolida ingredientes por rango temporal para lista de la compra.
 

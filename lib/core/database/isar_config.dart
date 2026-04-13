@@ -5,6 +5,8 @@ import '../../features/ai_chat/data/models/ai_chat_conversation.dart';
 import '../../features/ai_chat/data/models/ai_chat_conversation_log.dart';
 import '../../features/ai_chat/data/models/ai_chat_memory_snapshot.dart';
 import '../../features/ai_chat/data/models/ai_chat_message.dart';
+import '../../features/dashboard/data/models/checkin_animo.dart';
+import '../../features/dashboard/data/models/tarea_hoy.dart';
 import '../../features/nutrition/data/models/alimento.dart';
 import '../../features/nutrition/data/models/ingrediente_receta.dart';
 import '../../features/nutrition/data/models/receta.dart';
@@ -45,6 +47,7 @@ abstract final class IsarConfig {
         AiChatConversationLogSchema,
         AiChatMessageSchema,
         AiChatMemorySnapshotSchema,
+        CheckinAnimoSchema,
         AlimentoSchema,
         IngredienteRecetaSchema,
         RecetaSchema,
@@ -52,6 +55,7 @@ abstract final class IsarConfig {
         MetricaCorporalSchema,
         DiaEntrenamientoSchema,
         RegistroAguaSchema,
+        TareaHoySchema,
         DespensaProductoSchema,
         ShoppingManualItemSchema,
         ObjetivosNutricionalesSchema,

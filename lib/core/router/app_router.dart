@@ -6,6 +6,8 @@ import '../../features/ai_chat/data/models/ai_chat_agent.dart';
 import '../../features/calendar/presentation/screens/calendar_screen.dart';
 import '../../features/ai_chat/presentation/screens/gemini_chat_screen.dart';
 import '../../features/dashboard/presentation/screens/dashboard_screen.dart';
+import '../../features/dashboard/presentation/screens/mental_checkin_screen.dart';
+import '../../features/dashboard/presentation/screens/tasks_today_screen.dart';
 import '../../features/food_hub/presentation/screens/food_hub_screen.dart';
 import '../../features/inventory/presentation/screens/add_food_screen.dart';
 import '../../features/inventory/presentation/screens/barcode_scanner_screen.dart';
@@ -83,6 +85,18 @@ final appRouterProvider = Provider<GoRouter>((ref) {
         name: 'profile',
         pageBuilder: (context, state) =>
             _bookPageTransition(state, const ProfileScreen()),
+      ),
+      GoRoute(
+        path: '/tasks',
+        name: 'tasks',
+        pageBuilder: (context, state) =>
+            _bookPageTransition(state, const TasksTodayScreen()),
+      ),
+      GoRoute(
+        path: '/mental-checkin',
+        name: 'mentalCheckin',
+        pageBuilder: (context, state) =>
+            _bookPageTransition(state, const MentalCheckinScreen()),
       ),
       GoRoute(
         path: '/calendar',
