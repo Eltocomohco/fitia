@@ -367,13 +367,13 @@ abstract final class AiChatLocalStore {
       return 'Sin alimentos frecuentes detectados en las ultimas dos semanas.';
     }
 
+    final (:recipeMap, :foodMap) = await _buildRecipeAndFoodMaps(isar, records);
+
     final counter = <String, int>{};
     for (final record in records) {
-      final itemName = await _loadConsumedItemName(isar, record);
-      if (itemName == null || itemName.isEmpty) {
-        continue;
-      }
-      counter.update(itemName, (value) => value + 1, ifAbsent: () => 1);
+      final itemName = record.esReceta ? recipeMap[record.itemId] : foodMap[record.itemId];
+      if (itemName == null || itemName.isEmpty) continue;
+      counter.update(itemName, (v) => v + 1, ifAbsent: () => 1);
     }
 
     if (counter.isEmpty) {
@@ -397,12 +397,12 @@ abstract final class AiChatLocalStore {
       return 'Sin cenas registradas recientemente.';
     }
 
+    final (:recipeMap, :foodMap) = await _buildRecipeAndFoodMaps(isar, dinnerRecords);
+
     final dinnersByDay = <int, List<String>>{};
     for (final record in dinnerRecords) {
-      final itemName = await _loadConsumedItemName(isar, record);
-      if (itemName == null || itemName.isEmpty) {
-        continue;
-      }
+      final itemName = record.esReceta ? recipeMap[record.itemId] : foodMap[record.itemId];
+      if (itemName == null || itemName.isEmpty) continue;
       dinnersByDay.putIfAbsent(record.fechaDiaKey, () => <String>[]).add(itemName);
     }
 
@@ -446,12 +446,56 @@ abstract final class AiChatLocalStore {
       recordsByDay.putIfAbsent(record.fechaDiaKey, () => <RegistroDiario>[]).add(record);
     }
 
+    // Batch load everything needed for kcal calculation
+    final recipeIds = weeklyRecords.where((r) => r.esReceta).map((r) => r.itemId).toSet().toList();
+    final foodIds = weeklyRecords.where((r) => !r.esReceta).map((r) => r.itemId).toSet().toList();
+
+    final recipes = await isar.recetas.getAll(recipeIds);
+    final foods = await isar.alimentos.getAll(foodIds);
+
+    final recipeMap = {
+      for (var i = 0; i < recipeIds.length; i++)
+        if (recipes[i] != null) recipeIds[i]: recipes[i]!
+    };
+    final foodMap = {
+      for (var i = 0; i < foodIds.length; i++)
+        if (foods[i] != null) foodIds[i]: foods[i]!
+    };
+
+    for (final recipe in recipeMap.values) {
+      await recipe.ingredientes.load();
+      for (final ing in recipe.ingredientes) {
+        await ing.alimento.load();
+      }
+    }
+
     var totalWeeklyKcal = 0.0;
     var daysWithinGoal = 0;
     for (final dayRecords in recordsByDay.values) {
       var dayKcal = 0.0;
       for (final record in dayRecords) {
-        dayKcal += await _loadConsumedKcal(isar, record);
+        if (record.esReceta) {
+          final recipe = recipeMap[record.itemId];
+          if (recipe != null) {
+            var recipeKcal = 0.0;
+            var totalWeight = 0.0;
+            for (final ing in recipe.ingredientes) {
+              final food = ing.alimento.value;
+              if (food != null && food.porcionBaseGramos > 0) {
+                recipeKcal += food.kcal * (ing.cantidadGramos / food.porcionBaseGramos);
+                totalWeight += ing.cantidadGramos;
+              }
+            }
+            if (totalWeight > 0) {
+              dayKcal += recipeKcal * (record.cantidadConsumidaGramos / totalWeight);
+            }
+          }
+        } else {
+          final food = foodMap[record.itemId];
+          if (food != null && food.porcionBaseGramos > 0) {
+            dayKcal += food.kcal * (record.cantidadConsumidaGramos / food.porcionBaseGramos);
+          }
+        }
       }
       totalWeeklyKcal += dayKcal;
       if (calorieGoal != null && calorieGoal > 0) {
@@ -532,6 +576,36 @@ abstract final class AiChatLocalStore {
     }
 
     return food.kcal * (record.cantidadConsumidaGramos / food.porcionBaseGramos);
+  }
+
+  static Future<({
+    Map<int, String> recipeMap,
+    Map<int, String> foodMap,
+  })> _buildRecipeAndFoodMaps(
+    Isar isar,
+    List<RegistroDiario> records,
+  ) async {
+    final recipeIds =
+        records.where((r) => r.esReceta).map((r) => r.itemId).toSet().toList();
+    final foodIds = records
+        .where((r) => !r.esReceta)
+        .map((r) => r.itemId)
+        .toSet()
+        .toList();
+
+    final recipes = await isar.recetas.getAll(recipeIds);
+    final foods = await isar.alimentos.getAll(foodIds);
+
+    final recipeMap = {
+      for (var i = 0; i < recipeIds.length; i++)
+        if (recipes[i] != null) recipeIds[i]: recipes[i]!.nombre.trim()
+    };
+    final foodMap = {
+      for (var i = 0; i < foodIds.length; i++)
+        if (foods[i] != null) foodIds[i]: foods[i]!.nombre.trim()
+    };
+
+    return (recipeMap: recipeMap, foodMap: foodMap);
   }
 
   static String _mealTypeLabel(TipoComida mealType) {

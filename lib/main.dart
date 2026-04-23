@@ -9,14 +9,17 @@ import 'core/services/audio_player_service.dart';
 import 'core/services/home_widget_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/splash/presentation/widgets/startup_splash_overlay.dart';
-import 'features/tracking/presentation/providers/body_profile_provider.dart';
 import 'features/user/data/models/notification_preferences.dart';
-import 'features/user/presentation/screens/onboarding_profile_screen.dart';
 import 'features/workouts/data/services/workout_seed_service.dart';
+import 'dev/seed_test_data.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await dotenv.load(fileName: '.env');
+  try {
+    await dotenv.load(fileName: '.env');
+  } catch (e) {
+    debugPrint('No se pudo cargar el archivo .env: $e');
+  }
   runApp(const ProviderScope(child: AppBootstrap()));
 }
 
@@ -53,14 +56,45 @@ class _AppBootstrapState extends ConsumerState<AppBootstrap> {
   }
 
   Future<void> _initializeServices() async {
-    await HomeWidgetService.init();
     final isar = await IsarConfig.ensureInitialized();
-    await WorkoutAudioService.ensureInitialized();
-    await WorkoutSeedService.seedExercisesIfEmpty(isar);
-    await LocalNotificationService.instance.initialize();
-    final preferences =
-        await isar.notificationPreferences.get(1) ?? NotificationPreferences();
-    await LocalNotificationService.instance.rescheduleAll(preferences);
+
+    await Future.wait([
+      _runBootstrapStep('HomeWidgetService.init', HomeWidgetService.init),
+      _runBootstrapStep(
+        'WorkoutAudioService.ensureInitialized',
+        WorkoutAudioService.ensureInitialized,
+      ),
+      _runBootstrapStep(
+        'LocalNotificationService.initialize',
+        LocalNotificationService.instance.initialize,
+      ),
+    ]);
+
+    await Future.wait([
+      _runBootstrapStep('seedTestData', () => seedTestData(isar)),
+      _runBootstrapStep(
+        'WorkoutSeedService.seedExercisesIfEmpty',
+        () => WorkoutSeedService.seedExercisesIfEmpty(isar),
+      ),
+    ]);
+
+    await _runBootstrapStep('LocalNotificationService.rescheduleAll', () async {
+      final preferences =
+          await isar.notificationPreferences.get(1) ?? NotificationPreferences();
+      await LocalNotificationService.instance.rescheduleAll(preferences);
+    });
+  }
+
+  Future<void> _runBootstrapStep(
+    String stepName,
+    Future<void> Function() step,
+  ) async {
+    try {
+      await step();
+    } catch (error, stackTrace) {
+      debugPrint('Bootstrap step failed ($stepName): $error');
+      debugPrintStack(stackTrace: stackTrace);
+    }
   }
 
   @override
@@ -120,33 +154,7 @@ class AppEntryPoint extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final profileAsync = ref.watch(bodyProfileProvider);
-
-    return profileAsync.when(
-      loading: () => MaterialApp(
-        debugShowCheckedModeBanner: false,
-        title: 'Nutrition Offline',
-        theme: AppTheme.light,
-        darkTheme: AppTheme.dark,
-        themeMode: ThemeMode.system,
-        home: const StartupSplashScreen(duration: Duration(milliseconds: 600)),
-      ),
-      error: (_, _) => const MainApp(),
-      data: (profile) {
-        if (!profile.hasCompletedOnboarding) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            title: 'Nutrition Offline',
-            theme: AppTheme.light,
-            darkTheme: AppTheme.dark,
-            themeMode: ThemeMode.system,
-            home: const OnboardingProfileScreen(),
-          );
-        }
-
-        return const MainApp();
-      },
-    );
+    return const MainApp();
   }
 }
 
