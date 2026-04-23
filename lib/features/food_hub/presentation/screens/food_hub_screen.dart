@@ -789,7 +789,7 @@ class _ShoppingTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final shoppingAsync =
-        ref.watch(shoppingListNotifierProvider(range.start, range.end));
+        ref.watch(shoppingListProvider(range.start, range.end));
 
     return ListView(
       padding: const EdgeInsets.all(16),

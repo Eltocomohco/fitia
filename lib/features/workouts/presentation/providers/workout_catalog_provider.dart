@@ -12,9 +12,7 @@ part 'workout_catalog_provider.g.dart';
 
 /// Instancia activa de Isar accesible desde el módulo Workouts.
 final workoutIsarProvider = Provider<Isar>((ref) {
-  final instance = Isar.instanceNames.isNotEmpty
-      ? Isar.getInstance(Isar.instanceNames.first)
-      : null;
+  final instance = Isar.getInstance('nutrition_offline_db');
 
   if (instance == null) {
     throw StateError('No existe una instancia de Isar activa para Workouts.');

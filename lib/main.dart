@@ -8,6 +8,7 @@ import 'core/router/app_router.dart';
 import 'core/services/audio_player_service.dart';
 import 'core/services/home_widget_service.dart';
 import 'core/theme/app_theme.dart';
+import 'core/theme/app_theme_provider.dart' as theme_provider;
 import 'features/splash/presentation/widgets/startup_splash_overlay.dart';
 import 'features/user/data/models/notification_preferences.dart';
 import 'features/workouts/data/services/workout_seed_service.dart';
@@ -164,14 +165,38 @@ class MainApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final router = ref.watch(appRouterProvider);
+    final appTheme = ref.watch(theme_provider.appThemeProvider);
+
+    // Usar AppTheme original o generar para Panda Rojo
+    final themeData = appTheme == theme_provider.AppTheme.original
+        ? AppTheme.light
+        : _buildPandaRedTheme();
 
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       title: 'Nutrition Offline',
-      theme: AppTheme.light,
-      darkTheme: AppTheme.dark,
-      themeMode: ThemeMode.system,
+      theme: themeData,
       routerConfig: router,
+    );
+  }
+
+  ThemeData _buildPandaRedTheme() {
+    final colors = theme_provider.getThemeColors(theme_provider.AppTheme.pandaRojo);
+    return ThemeData(
+      useMaterial3: true,
+      colorScheme: ColorScheme.dark(
+        primary: colors.accent,
+        onPrimary: colors.accentFg,
+        surface: colors.bg,
+        onSurface: colors.text,
+        outline: colors.muted,
+      ),
+      scaffoldBackgroundColor: colors.bg,
+      appBarTheme: AppBarTheme(
+        backgroundColor: colors.headerBg,
+        foregroundColor: colors.text,
+        surfaceTintColor: Colors.transparent,
+      ),
     );
   }
 }

@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/database/isar_config.dart';
 import '../../../../core/services/gemini_action_executor.dart';
 import '../../../../core/services/gemini_companion_service.dart';
+import '../../../../core/theme/app_theme_provider.dart';
 import '../../data/models/ai_chat_agent.dart';
 import '../../data/models/ai_chat_message.dart' as chat_models;
 import '../../data/services/ai_chat_local_store.dart';
@@ -13,6 +14,9 @@ import '../../../inventory/presentation/providers/inventory_provider.dart';
 import '../../../recipes/presentation/providers/recipe_provider.dart';
 import '../../../shopping/presentation/providers/shopping_provider.dart';
 import '../../../workouts/presentation/providers/workout_catalog_provider.dart';
+import '../../../dashboard/presentation/providers/daily_macros_provider.dart';
+import '../../../dashboard/presentation/providers/today_hub_provider.dart';
+import '../../../tracking/presentation/providers/water_intake_provider.dart';
 
 /// Pantalla de conversación con Fiti enriquecida con contexto local de la app.
 class GeminiChatScreen extends ConsumerStatefulWidget {
@@ -51,271 +55,91 @@ class _GeminiChatScreenState extends ConsumerState<GeminiChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final agentTheme = _agentTheme(_selectedAgent);
-    return Scaffold(
-      backgroundColor: agentTheme.pageBackgroundColor,
-      appBar: AppBar(
-        backgroundColor: agentTheme.chromeColor,
-        foregroundColor: agentTheme.foregroundColor,
-        surfaceTintColor: Colors.transparent,
-        elevation: 0,
-        title: Text(_selectedAgent.displayName),
-        actions: [
-          IconButton(
-            tooltip: 'Calendario',
-            onPressed: () => context.push('/calendar'),
-            icon: const Icon(Icons.calendar_month_outlined),
-          ),
-          IconButton(
-            tooltip: 'Perfil y ajustes',
-            onPressed: () => context.push('/profile'),
-            icon: const Icon(Icons.person_outline),
-          ),
-          IconButton(
-            tooltip: 'Nueva conversación',
-            onPressed: _isLoading || _isBootstrapping
-                ? null
-                : _startNewConversation,
-            icon: const Icon(Icons.add_comment_outlined),
-          ),
-        ],
-      ),
-      body: AnimatedContainer(
-        duration: const Duration(milliseconds: 220),
-        color: agentTheme.pageBackgroundColor,
-        child: DefaultTextStyle(
-          style: Theme.of(context).textTheme.bodyLarge!.copyWith(
-            color: agentTheme.primaryTextColor,
-          ),
-          child: IconTheme(
-            data: IconThemeData(color: agentTheme.primaryTextColor),
-            child: Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
-                  child: _AgentSelector(
-                    selectedAgent: _selectedAgent,
-                    isBusy: _isLoading || _isBootstrapping,
-                    onSelected: _selectAgent,
-                  ),
-                ),
-                Expanded(
-                  child: _isBootstrapping
-                      ? Center(
-                          child: CircularProgressIndicator(
-                            color: agentTheme.accentColor,
-                          ),
-                        )
-                      : _messages.isEmpty
-                      ? _ChatEmptyState(selectedAgent: _selectedAgent)
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                          itemCount: _messages.length + (_isLoading ? 1 : 0),
-                          itemBuilder: (context, index) {
-                            if (_isLoading && index == _messages.length) {
-                              return _TypingBubble(theme: agentTheme);
-                            }
+    final appTheme = ref.watch(appThemeProvider);
+    final t = _agentTheme(_selectedAgent, theme: appTheme);
 
-                            final message = _messages[index];
-                            final isUser = message.role == _ChatRole.user;
-                            return Align(
-                              alignment: isUser
-                                  ? Alignment.centerRight
-                                  : Alignment.centerLeft,
-                              child: ConstrainedBox(
-                                constraints: const BoxConstraints(maxWidth: 560),
-                                child: Container(
-                                  margin: const EdgeInsets.only(bottom: 12),
-                                  padding: const EdgeInsets.all(14),
-                                  decoration: BoxDecoration(
-                                    color: isUser
-                                        ? agentTheme.userBubbleColor
-                                        : agentTheme.bubbleColor,
-                                    borderRadius: BorderRadius.circular(18),
-                                    border: Border.all(
-                                      color: isUser
-                                          ? agentTheme.userBubbleBorderColor
-                                          : agentTheme.borderColor,
-                                    ),
-                                  ),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      isUser
-                                          ? Text(
-                                              message.text,
-                                              style: Theme.of(context)
-                                                  .textTheme
-                                                  .bodyLarge
-                                                  ?.copyWith(
-                                                    color: agentTheme
-                                                        .userBubbleTextColor,
-                                                  ),
-                                            )
-                                          : MarkdownBody(
-                                              data: message.text,
-                                              selectable: true,
-                                              styleSheet:
-                                                  MarkdownStyleSheet.fromTheme(
-                                                Theme.of(context),
-                                              ).copyWith(
-                                                p: Theme.of(context)
-                                                    .textTheme
-                                                    .bodyLarge
-                                                    ?.copyWith(
-                                                      color: agentTheme
-                                                          .primaryTextColor,
-                                                    ),
-                                                h1: Theme.of(context)
-                                                    .textTheme
-                                                    .headlineSmall
-                                                    ?.copyWith(
-                                                      color: agentTheme
-                                                          .primaryTextColor,
-                                                    ),
-                                                h2: Theme.of(context)
-                                                    .textTheme
-                                                    .titleLarge
-                                                    ?.copyWith(
-                                                      color: agentTheme
-                                                          .primaryTextColor,
-                                                    ),
-                                                h3: Theme.of(context)
-                                                    .textTheme
-                                                    .titleMedium
-                                                    ?.copyWith(
-                                                      color: agentTheme
-                                                          .primaryTextColor,
-                                                    ),
-                                                listBullet: Theme.of(context)
-                                                    .textTheme
-                                                    .bodyLarge
-                                                    ?.copyWith(
-                                                      color: agentTheme
-                                                          .primaryTextColor,
-                                                    ),
-                                                strong: Theme.of(context)
-                                                    .textTheme
-                                                    .bodyLarge
-                                                    ?.copyWith(
-                                                      color: agentTheme
-                                                          .primaryTextColor,
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
-                                              ),
-                                            ),
-                                      if (message.actions.isNotEmpty) ...[
-                                        const SizedBox(height: 12),
-                                        _ActionPreviewCard(
-                                          theme: agentTheme,
-                                          actions: message.actions,
-                                          actionDecisions:
-                                            message.actionDecisions,
-                                          status: message.actionStatus,
-                                          resultMessage: message.actionResult,
-                                          onApproveAction: message.actionStatus ==
-                                              _ChatActionStatus.pending
-                                            ? (actionIndex) =>
-                                              _setActionDecision(
-                                              index,
-                                              actionIndex,
-                                              _ChatActionDecision.approved,
-                                              )
-                                            : null,
-                                          onRejectAction: message.actionStatus ==
-                                              _ChatActionStatus.pending
-                                            ? (actionIndex) =>
-                                              _setActionDecision(
-                                              index,
-                                              actionIndex,
-                                              _ChatActionDecision.rejected,
-                                              )
-                                            : null,
-                                          onApply: message.actionStatus ==
-                                                _ChatActionStatus.pending &&
-                                              message.isReadyToApply
-                                              ? () => _applyActions(index)
-                                              : null,
-                                          onDismiss: message.actionStatus ==
-                                                  _ChatActionStatus.pending
-                                              ? () => _dismissActions(index)
-                                              : null,
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            );
-                          },
-                        ),
-                ),
-                SafeArea(
-                  top: false,
-                  child: Padding(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: _messageController,
-                            style: TextStyle(color: agentTheme.primaryTextColor),
-                            cursorColor: agentTheme.accentColor,
-                            minLines: 1,
-                            maxLines: 4,
-                            textInputAction: TextInputAction.send,
-                            onSubmitted: (_) => _handleSend(),
-                            decoration: InputDecoration(
-                              hintText: _selectedAgent.composerHint,
-                              hintStyle: TextStyle(color: agentTheme.mutedColor),
-                              filled: true,
-                              fillColor: agentTheme.inputBackgroundColor,
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide:
-                                    BorderSide(color: agentTheme.borderColor),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(18),
-                                borderSide:
-                                    BorderSide(color: agentTheme.accentColor),
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        FilledButton.icon(
-                          onPressed: _isLoading ? null : _handleSend,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: agentTheme.accentColor,
-                            foregroundColor: agentTheme.onAccentColor,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 18,
-                            ),
-                          ),
-                          icon: _isLoading
-                              ? SizedBox(
-                                  width: 16,
-                                  height: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                    color: agentTheme.onAccentColor,
-                                  ),
-                                )
-                              : const Icon(Icons.send_outlined),
-                          label: const Text('Enviar'),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+    return Scaffold(
+      backgroundColor: t.bg,
+      // ── AppBar completamente personalizado ──────────────────────────────
+      appBar: PreferredSize(
+        preferredSize: const Size.fromHeight(64),
+        child: _ChatAppBar(
+          agent: _selectedAgent,
+          theme: t,
+          isBusy: _isLoading || _isBootstrapping,
+          onSelectAgent: _selectAgent,
+          onNewChat: _startNewConversation,
+        ),
+      ),
+      body: Column(
+        children: [
+          // ── Subheader de contexto ───────────────────────────────────────
+          _ContextStrip(agent: _selectedAgent, theme: t),
+
+          // ── Mensajes ────────────────────────────────────────────────────
+          Expanded(
+            child: _isBootstrapping
+                ? Center(
+                    child: CircularProgressIndicator(
+                        color: t.accent, strokeWidth: 2))
+                : _messages.isEmpty
+                    ? _EmptyState(agent: _selectedAgent, theme: t)
+                    : ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(16, 20, 16, 12),
+                        itemCount:
+                            _messages.length + (_isLoading ? 1 : 0),
+                        itemBuilder: (context, index) {
+                          if (_isLoading && index == _messages.length) {
+                            return _ThinkingBubble(theme: t);
+                          }
+                          final msg = _messages[index];
+                          final isUser = msg.role == _ChatRole.user;
+                          return _MessageBubble(
+                            message: msg,
+                            isUser: isUser,
+                            theme: t,
+                            onApproveAction: msg.actionStatus ==
+                                    _ChatActionStatus.pending
+                                ? (i) => _setActionDecision(index, i,
+                                    _ChatActionDecision.approved)
+                                : null,
+                            onRejectAction: msg.actionStatus ==
+                                    _ChatActionStatus.pending
+                                ? (i) => _setActionDecision(index, i,
+                                    _ChatActionDecision.rejected)
+                                : null,
+                            onApply: msg.actionStatus ==
+                                        _ChatActionStatus.pending &&
+                                    msg.isReadyToApply
+                                ? () => _applyActions(index)
+                                : null,
+                            onDismiss: msg.actionStatus ==
+                                    _ChatActionStatus.pending
+                                ? () => _dismissActions(index)
+                                : null,
+                          );
+                        },
+                      ),
+          ),
+
+          // ── Input area ──────────────────────────────────────────────────
+          SafeArea(
+            top: false,
+            child: _InputArea(
+              controller: _messageController,
+              agent: _selectedAgent,
+              theme: t,
+              isLoading: _isLoading,
+              showSuggestions: !_isBootstrapping && _messages.isEmpty,
+              onSend: _handleSend,
+              onSuggestion: (text) {
+                _messageController.text = text;
+                _handleSend();
+              },
             ),
           ),
-        ),
+        ],
       ),
     );
   }
@@ -714,241 +538,296 @@ class _GeminiChatScreenState extends ConsumerState<GeminiChatScreen> {
   }
 }
 
-class _TypingBubble extends StatelessWidget {
-  const _TypingBubble({required this.theme});
 
-  final _AgentThemeData theme;
+// ─────────────────────────────────────────────────────────────────────────────
+// Tema por agente — rediseñado
+// ─────────────────────────────────────────────────────────────────────────────
 
-  @override
-  Widget build(BuildContext context) {
-    return Align(
-      alignment: Alignment.centerLeft,
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: theme.bubbleColor,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: theme.borderColor),
-        ),
-        child: SizedBox(
-          width: 18,
-          height: 18,
-          child: CircularProgressIndicator(
-            strokeWidth: 2,
-            color: theme.accentColor,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _AgentThemeData {
-  const _AgentThemeData({
-    required this.accentColor,
-    required this.foregroundColor,
-    required this.onAccentColor,
-    required this.chromeColor,
-    required this.pageBackgroundColor,
-    required this.primaryTextColor,
-    required this.mutedColor,
-    required this.inputBackgroundColor,
-    required this.bubbleColor,
-    required this.borderColor,
-    required this.userBubbleColor,
-    required this.userBubbleBorderColor,
-    required this.userBubbleTextColor,
+class _AgentTheme {
+  const _AgentTheme({
+    required this.bg,
+    required this.headerBg,
+    required this.accent,
+    required this.accentFg,
+    required this.text,
+    required this.muted,
+    required this.userBubble,
+    required this.userBubbleFg,
+    required this.aiBubble,
+    required this.aiBubbleFg,
+    required this.inputBg,
+    required this.inputBorder,
+    required this.divider,
+    required this.icon,
+    required this.label,
   });
 
-  final Color accentColor;
-  final Color foregroundColor;
-  final Color onAccentColor;
-  final Color chromeColor;
-  final Color pageBackgroundColor;
-  final Color primaryTextColor;
-  final Color mutedColor;
-  final Color inputBackgroundColor;
-  final Color bubbleColor;
-  final Color borderColor;
-  final Color userBubbleColor;
-  final Color userBubbleBorderColor;
-  final Color userBubbleTextColor;
+  final Color bg;
+  final Color headerBg;
+  final Color accent;
+  final Color accentFg;
+  final Color text;
+  final Color muted;
+  final Color userBubble;
+  final Color userBubbleFg;
+  final Color aiBubble;
+  final Color aiBubbleFg;
+  final Color inputBg;
+  final Color inputBorder;
+  final Color divider;
+  final IconData icon;
+  final String label;
 }
 
-_AgentThemeData _agentTheme(AiChatAgent agent) {
-  return switch (agent) {
-    AiChatAgent.nutrition => const _AgentThemeData(
-      accentColor: Color(0xFF7C4DFF),
-      foregroundColor: Colors.white,
-      onAccentColor: Colors.white,
-      chromeColor: Color(0xFF6D3EF0),
-      pageBackgroundColor: Color(0xFFF6F1FF),
-      primaryTextColor: Color(0xFF22143D),
-      mutedColor: Color(0xFF6A5B88),
-      inputBackgroundColor: Colors.white,
-      bubbleColor: Color(0xFFEFE6FF),
-      borderColor: Color(0xFFD5C4FF),
-      userBubbleColor: Color(0xFF7C4DFF),
-      userBubbleBorderColor: Color(0xFF7C4DFF),
-      userBubbleTextColor: Colors.white,
-    ),
-    AiChatAgent.workout => const _AgentThemeData(
-      accentColor: Color(0xFFFFFFFF),
-      foregroundColor: Colors.white,
-      onAccentColor: Color(0xFF090909),
-      chromeColor: Color(0xFF050505),
-      pageBackgroundColor: Color(0xFF050505),
-      primaryTextColor: Color(0xFFF5F7FA),
-      mutedColor: Color(0xFF9BA3AE),
-      inputBackgroundColor: Color(0xFF101114),
-      bubbleColor: Color(0xFF121317),
-      borderColor: Color(0xFF2C3036),
-      userBubbleColor: Color(0xFFF5F7FA),
-      userBubbleBorderColor: Color(0xFFDCE1E8),
-      userBubbleTextColor: Color(0xFF090909),
-    ),
-    AiChatAgent.boss => const _AgentThemeData(
-      accentColor: Color(0xFFC79400),
-      foregroundColor: Color(0xFF211A00),
-      onAccentColor: Color(0xFF211A00),
-      chromeColor: Color(0xFFE0B33A),
-      pageBackgroundColor: Color(0xFFFFF7E3),
-      primaryTextColor: Color(0xFF2B2105),
-      mutedColor: Color(0xFF7D6A31),
-      inputBackgroundColor: Color(0xFFFFFDF7),
-      bubbleColor: Color(0xFFFFF0C3),
-      borderColor: Color(0xFFE8CF7A),
-      userBubbleColor: Color(0xFFC79400),
-      userBubbleBorderColor: Color(0xFFC79400),
-      userBubbleTextColor: Color(0xFF211A00),
-    ),
-  };
+// Alias de compatibilidad con el código viejo de _ActionPreviewCard
+typedef _AgentThemeData = _AgentTheme;
+
+_AgentTheme _agentTheme(AiChatAgent agent, {AppTheme theme = AppTheme.original}) {
+  final colors = getThemeColors(theme);
+  return _AgentTheme(
+    bg: colors.bg,
+    headerBg: colors.headerBg,
+    accent: colors.accent,
+    accentFg: colors.accentFg,
+    text: colors.text,
+    muted: colors.muted,
+    userBubble: colors.userBubble,
+    userBubbleFg: colors.userBubbleFg,
+    aiBubble: colors.aiBubble,
+    aiBubbleFg: colors.aiBubbleFg,
+    inputBg: colors.inputBg,
+    inputBorder: colors.inputBorder,
+    divider: colors.divider,
+    icon: colors.icon,
+    label: colors.label,
+  );
 }
 
-class _AgentSelector extends StatelessWidget {
-  const _AgentSelector({
-    required this.selectedAgent,
-    required this.isBusy,
-    required this.onSelected,
-  });
 
-  final AiChatAgent selectedAgent;
-  final bool isBusy;
-  final ValueChanged<AiChatAgent> onSelected;
+// ─────────────────────────────────────────────────────────────────────────────
+// AppBar personalizado con selector de agente integrado
+// ─────────────────────────────────────────────────────────────────────────────
 
-  @override
-  Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                for (final agent in AiChatAgent.values) ...[
-                  _AgentQuickSwitch(
-                    agent: agent,
-                    selected: agent == selectedAgent,
-                    enabled: !isBusy,
-                    onTap: () => onSelected(agent),
-                  ),
-                  if (agent != AiChatAgent.values.last) const SizedBox(width: 8),
-                ],
-              ],
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _ChatEmptyState extends StatelessWidget {
-  const _ChatEmptyState({required this.selectedAgent});
-
-  final AiChatAgent selectedAgent;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = _agentTheme(selectedAgent);
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Text(
-          selectedAgent.description,
-          textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-            color: theme.primaryTextColor,
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-IconData _selectorIconForAgent(AiChatAgent agent) {
-  return switch (agent) {
-    AiChatAgent.nutrition => Icons.restaurant_menu_outlined,
-    AiChatAgent.workout => Icons.fitness_center_outlined,
-    AiChatAgent.boss => Icons.visibility_outlined,
-  };
-}
-
-String _agentInitial(AiChatAgent agent) {
-  return switch (agent) {
-    AiChatAgent.nutrition => 'Nutricion',
-    AiChatAgent.workout => 'Gym',
-    AiChatAgent.boss => 'Boss',
-  };
-}
-
-class _AgentQuickSwitch extends StatelessWidget {
-  const _AgentQuickSwitch({
+class _ChatAppBar extends StatelessWidget {
+  const _ChatAppBar({
     required this.agent,
-    required this.selected,
-    required this.enabled,
-    required this.onTap,
+    required this.theme,
+    required this.isBusy,
+    required this.onSelectAgent,
+    required this.onNewChat,
   });
 
   final AiChatAgent agent;
-  final bool selected;
-  final bool enabled;
-  final VoidCallback onTap;
+  final _AgentTheme theme;
+  final bool isBusy;
+  final ValueChanged<AiChatAgent> onSelectAgent;
+  final VoidCallback onNewChat;
 
   @override
   Widget build(BuildContext context) {
-    final theme = _agentTheme(agent);
-    return InkWell(
-      onTap: enabled ? onTap : null,
-      borderRadius: BorderRadius.circular(999),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected ? theme.accentColor : theme.bubbleColor,
-          borderRadius: BorderRadius.circular(999),
-          border: Border.all(
-            color: selected ? theme.accentColor : theme.borderColor,
-            width: selected ? 2 : 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(
-              _selectorIconForAgent(agent),
-              size: 16,
-              color: selected ? theme.foregroundColor : theme.accentColor,
+    return Container(
+      color: theme.headerBg,
+      padding: EdgeInsets.only(
+        top: MediaQuery.of(context).padding.top,
+        left: 16,
+        right: 8,
+        bottom: 0,
+      ),
+      child: Row(
+        children: [
+          // Icono del agente activo
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: theme.accent.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(10),
             ),
-            const SizedBox(width: 6),
-            Text(
-              _agentInitial(agent),
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: selected
-                    ? theme.onAccentColor
-                    : theme.primaryTextColor,
-                fontWeight: FontWeight.w800,
+            child: Icon(theme.icon, color: theme.accent, size: 18),
+          ),
+          const SizedBox(width: 10),
+          // Nombre
+          Expanded(
+            child: Text(
+              agent.displayName,
+              style: TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: theme.text,
               ),
+            ),
+          ),
+          // Selector de agentes en pills
+          Row(
+            children: AiChatAgent.values.map((a) {
+              final selected = a == agent;
+              final t = _agentTheme(a);
+              return Padding(
+                padding: const EdgeInsets.only(right: 6),
+                child: GestureDetector(
+                  onTap: isBusy ? null : () => onSelectAgent(a),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: selected
+                          ? t.accent
+                          : t.accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(t.icon,
+                            size: 12,
+                            color: selected ? t.accentFg : t.accent),
+                        const SizedBox(width: 4),
+                        Text(
+                          t.label,
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: selected ? t.accentFg : t.accent,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
+          // Nueva conversación
+          IconButton(
+            icon: Icon(Icons.add_comment_outlined,
+                size: 20, color: theme.muted),
+            onPressed: isBusy ? null : onNewChat,
+            tooltip: 'Nueva conversación',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Strip de contexto (kcal, agua, tareas)
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ContextStrip extends ConsumerWidget {
+  const _ContextStrip({required this.agent, required this.theme});
+  final AiChatAgent agent;
+  final _AgentTheme theme;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final macros = ref.watch(dailyMacrosProvider).asData?.value;
+    final hub = ref.watch(todayHubProvider).asData?.value;
+    final waterMl = ref.watch(waterIntakeProvider).asData?.value
+            ?.fold<int>(0, (s, e) => s + (e.mililitros as int))
+            .toDouble() ??
+        0;
+
+    final kcal = macros?.kcalConsumidas ?? 0;
+    final goal = macros?.kcalObjetivo ?? 0;
+    final pending = hub?.pendingTaskCount ?? 0;
+    final hasWorkout = hub?.hasActiveWorkout ?? false;
+
+    if (kcal == 0 && pending == 0 && !hasWorkout) {
+      return Container(height: 1, color: theme.divider);
+    }
+
+    final items = <_CtxItem>[];
+    if (kcal > 0 && goal > 0) {
+      items.add(_CtxItem(
+          icon: Icons.local_fire_department_outlined,
+          text: '${kcal.toStringAsFixed(0)} kcal'));
+    }
+    if (waterMl > 0) {
+      items.add(_CtxItem(
+          icon: Icons.water_drop_outlined,
+          text: '${(waterMl / 1000).toStringAsFixed(1)} L'));
+    }
+    if (pending > 0) {
+      items.add(
+          _CtxItem(icon: Icons.checklist_outlined, text: '$pending tareas'));
+    }
+    if (hasWorkout) {
+      items.add(_CtxItem(
+          icon: Icons.fitness_center_outlined, text: 'Sesión activa'));
+    }
+
+    return Container(
+      color: theme.headerBg,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          for (var i = 0; i < items.length; i++) ...[
+            if (i > 0)
+              Container(
+                width: 1,
+                height: 12,
+                color: theme.muted.withValues(alpha: 0.3),
+                margin: const EdgeInsets.symmetric(horizontal: 10),
+              ),
+            Icon(items[i].icon, size: 12, color: theme.accent),
+            const SizedBox(width: 4),
+            Text(items[i].text,
+                style: TextStyle(fontSize: 11, color: theme.muted)),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _CtxItem {
+  const _CtxItem({required this.icon, required this.text});
+  final IconData icon;
+  final String text;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Estado vacío
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _EmptyState extends StatelessWidget {
+  const _EmptyState({required this.agent, required this.theme});
+  final AiChatAgent agent;
+  final _AgentTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: theme.accent.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+              ),
+              child: Icon(theme.icon, color: theme.accent, size: 32),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              agent.displayName,
+              style: TextStyle(
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: theme.text,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              agent.description,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 14, color: theme.muted, height: 1.5),
             ),
           ],
         ),
@@ -957,40 +836,673 @@ class _AgentQuickSwitch extends StatelessWidget {
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Burbuja de mensaje
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _MessageBubble extends StatelessWidget {
+  const _MessageBubble({
+    required this.message,
+    required this.isUser,
+    required this.theme,
+    this.onApproveAction,
+    this.onRejectAction,
+    this.onApply,
+    this.onDismiss,
+  });
+
+  final _ChatMessage message;
+  final bool isUser;
+  final _AgentTheme theme;
+  final ValueChanged<int>? onApproveAction;
+  final ValueChanged<int>? onRejectAction;
+  final VoidCallback? onApply;
+  final VoidCallback? onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        mainAxisAlignment:
+            isUser ? MainAxisAlignment.end : MainAxisAlignment.start,
+        children: [
+          // Avatar del agente (izquierda)
+          if (!isUser) ...[
+            Container(
+              width: 28,
+              height: 28,
+              margin: const EdgeInsets.only(right: 8, bottom: 2),
+              decoration: BoxDecoration(
+                color: theme.accent.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(theme.icon, size: 14, color: theme.accent),
+            ),
+          ],
+
+          // Burbuja
+          Flexible(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.of(context).size.width * 0.78,
+              ),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 14, vertical: 12),
+                decoration: BoxDecoration(
+                  color: isUser ? theme.userBubble : theme.aiBubble,
+                  borderRadius: BorderRadius.only(
+                    topLeft: const Radius.circular(18),
+                    topRight: const Radius.circular(18),
+                    bottomLeft: Radius.circular(isUser ? 18 : 4),
+                    bottomRight: Radius.circular(isUser ? 4 : 18),
+                  ),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    isUser
+                        ? Text(
+                            message.text,
+                            style: TextStyle(
+                              fontSize: 15,
+                              color: theme.userBubbleFg,
+                              height: 1.45,
+                            ),
+                          )
+                        : MarkdownBody(
+                            data: message.text,
+                            selectable: true,
+                            styleSheet: MarkdownStyleSheet(
+                              p: TextStyle(
+                                  fontSize: 15,
+                                  color: theme.aiBubbleFg,
+                                  height: 1.5),
+                              h1: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w700,
+                                  color: theme.aiBubbleFg),
+                              h2: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.aiBubbleFg),
+                              h3: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: theme.aiBubbleFg),
+                              listBullet: TextStyle(
+                                  fontSize: 15, color: theme.aiBubbleFg),
+                              strong: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w700,
+                                  color: theme.accent),
+                              code: TextStyle(
+                                fontSize: 13,
+                                color: theme.accent,
+                                backgroundColor:
+                                    theme.accent.withValues(alpha: 0.1),
+                              ),
+                            ),
+                          ),
+                    if (message.actions.isNotEmpty) ...[
+                      const SizedBox(height: 12),
+                      _ActionCard(
+                        theme: theme,
+                        actions: message.actions,
+                        actionDecisions: message.actionDecisions,
+                        status: message.actionStatus,
+                        resultMessage: message.actionResult,
+                        onApproveAction: onApproveAction,
+                        onRejectAction: onRejectAction,
+                        onApply: onApply,
+                        onDismiss: onDismiss,
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+          ),
+
+          // Espacio donde iría el avatar en mensajes de usuario
+          if (isUser) const SizedBox(width: 36),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Burbuja "pensando"
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ThinkingBubble extends StatelessWidget {
+  const _ThinkingBubble({required this.theme});
+  final _AgentTheme theme;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Container(
+            width: 28,
+            height: 28,
+            margin: const EdgeInsets.only(right: 8, bottom: 2),
+            decoration: BoxDecoration(
+              color: theme.accent.withValues(alpha: 0.15),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(theme.icon, size: 14, color: theme.accent),
+          ),
+          Container(
+            padding:
+                const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            decoration: BoxDecoration(
+              color: theme.aiBubble,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(18),
+                topRight: Radius.circular(18),
+                bottomLeft: Radius.circular(4),
+                bottomRight: Radius.circular(18),
+              ),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _Dot(color: theme.accent, delay: 0),
+                const SizedBox(width: 4),
+                _Dot(color: theme.accent, delay: 150),
+                const SizedBox(width: 4),
+                _Dot(color: theme.accent, delay: 300),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _Dot extends StatefulWidget {
+  const _Dot({required this.color, required this.delay});
+  final Color color;
+  final int delay;
+
+  @override
+  State<_Dot> createState() => _DotState();
+}
+
+class _DotState extends State<_Dot> with SingleTickerProviderStateMixin {
+  late AnimationController _ctrl;
+  late Animation<double> _anim;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 600));
+    _anim = Tween(begin: 0.3, end: 1.0).animate(
+        CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+    Future.delayed(Duration(milliseconds: widget.delay), () {
+      if (mounted) _ctrl.repeat(reverse: true);
+    });
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _anim,
+      builder: (_, __) => Opacity(
+        opacity: _anim.value,
+        child: Container(
+          width: 7,
+          height: 7,
+          decoration: BoxDecoration(
+              color: widget.color, shape: BoxShape.circle),
+        ),
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Input area con sugerencias
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _InputArea extends StatelessWidget {
+  const _InputArea({
+    required this.controller,
+    required this.agent,
+    required this.theme,
+    required this.isLoading,
+    required this.showSuggestions,
+    required this.onSend,
+    required this.onSuggestion,
+  });
+
+  final TextEditingController controller;
+  final AiChatAgent agent;
+  final _AgentTheme theme;
+  final bool isLoading;
+  final bool showSuggestions;
+  final VoidCallback onSend;
+  final ValueChanged<String> onSuggestion;
+
+  static const _suggestions = <AiChatAgent, List<String>>{
+    AiChatAgent.boss: [
+      '¿Qué toca hoy?',
+      'Resumen del día',
+      '¿Cardio o pesas?',
+      'Ajustar calorías',
+    ],
+    AiChatAgent.nutrition: [
+      '¿Qué como mañana?',
+      'Cena rápida hoy',
+      'Estoy corto de proteína',
+      'Lista de la compra',
+    ],
+    AiChatAgent.workout: [
+      '¿Qué entreno toca?',
+      'Sesión de 30 min',
+      '¿Descanso hoy?',
+      'Mi progresión esta semana',
+    ],
+  };
+
+  @override
+  Widget build(BuildContext context) {
+    final chips = _suggestions[agent] ?? [];
+
+    return Container(
+      color: theme.headerBg,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(height: 1, color: theme.divider),
+
+          // Chips de sugerencias
+          if (showSuggestions && chips.isNotEmpty)
+            SizedBox(
+              height: 42,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16, vertical: 6),
+                itemCount: chips.length,
+                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                itemBuilder: (_, i) => GestureDetector(
+                  onTap: () => onSuggestion(chips[i]),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 14, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: theme.accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(99),
+                      border: Border.all(
+                          color: theme.accent.withValues(alpha: 0.3)),
+                    ),
+                    child: Text(
+                      chips[i],
+                      style: TextStyle(
+                          fontSize: 12,
+                          color: theme.accent,
+                          fontWeight: FontWeight.w500),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+
+          // Input + botón
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 10, 16, 16),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: theme.inputBg,
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: theme.inputBorder),
+                    ),
+                    child: TextField(
+                      controller: controller,
+                      style: TextStyle(color: theme.text, fontSize: 15),
+                      cursorColor: theme.accent,
+                      minLines: 1,
+                      maxLines: 5,
+                      textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => onSend(),
+                      decoration: InputDecoration(
+                        hintText: agent.composerHint,
+                        hintStyle:
+                            TextStyle(color: theme.muted, fontSize: 14),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 16, vertical: 12),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                GestureDetector(
+                  onTap: isLoading ? null : onSend,
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: 46,
+                    height: 46,
+                    decoration: BoxDecoration(
+                      color: isLoading
+                          ? theme.accent.withValues(alpha: 0.4)
+                          : theme.accent,
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: isLoading
+                        ? Padding(
+                            padding: const EdgeInsets.all(13),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: theme.accentFg,
+                            ),
+                          )
+                        : Icon(Icons.arrow_upward_rounded,
+                            color: theme.accentFg, size: 22),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Card de acciones propuestas — misma lógica, nuevo estilo
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _ActionCard extends StatelessWidget {
+  const _ActionCard({
+    required this.theme,
+    required this.actions,
+    required this.actionDecisions,
+    required this.status,
+    required this.resultMessage,
+    this.onApproveAction,
+    this.onRejectAction,
+    this.onApply,
+    this.onDismiss,
+  });
+
+  final _AgentTheme theme;
+  final List<GeminiActionProposal> actions;
+  final List<_ChatActionDecision> actionDecisions;
+  final _ChatActionStatus status;
+  final String? resultMessage;
+  final ValueChanged<int>? onApproveAction;
+  final ValueChanged<int>? onRejectAction;
+  final VoidCallback? onApply;
+  final VoidCallback? onDismiss;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: theme.accent.withValues(alpha: 0.07),
+        borderRadius: BorderRadius.circular(12),
+        border:
+            Border.all(color: theme.accent.withValues(alpha: 0.2)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(Icons.auto_fix_high_outlined,
+                  size: 14, color: theme.accent),
+              const SizedBox(width: 6),
+              Text(
+                'Cambios propuestos',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: theme.accent,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          for (final e in actions.asMap().entries)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: _ActionRow(
+                theme: theme,
+                label: e.value.previewLabel,
+                decision: e.key < actionDecisions.length
+                    ? actionDecisions[e.key]
+                    : _ChatActionDecision.undecided,
+                enabled: status == _ChatActionStatus.pending,
+                onApprove: onApproveAction == null
+                    ? null
+                    : () => onApproveAction!(e.key),
+                onReject: onRejectAction == null
+                    ? null
+                    : () => onRejectAction!(e.key),
+              ),
+            ),
+          if (resultMessage != null) ...[
+            const SizedBox(height: 6),
+            Text(resultMessage!,
+                style: TextStyle(fontSize: 12, color: theme.muted)),
+          ],
+          if (status == _ChatActionStatus.pending ||
+              status == _ChatActionStatus.applying) ...[
+            const SizedBox(height: 10),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: status == _ChatActionStatus.pending
+                        ? onApply
+                        : null,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(vertical: 9),
+                      decoration: BoxDecoration(
+                        color: theme.accent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        status == _ChatActionStatus.applying
+                            ? 'Aplicando...'
+                            : 'Aplicar',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: theme.accentFg,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                GestureDetector(
+                  onTap: status == _ChatActionStatus.pending
+                      ? onDismiss
+                      : null,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 9, horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: theme.accent.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      'Ignorar',
+                      style: TextStyle(
+                          fontSize: 13, color: theme.muted),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _ActionRow extends StatelessWidget {
+  const _ActionRow({
+    required this.theme,
+    required this.label,
+    required this.decision,
+    required this.enabled,
+    this.onApprove,
+    this.onReject,
+  });
+
+  final _AgentTheme theme;
+  final String label;
+  final _ChatActionDecision decision;
+  final bool enabled;
+  final VoidCallback? onApprove;
+  final VoidCallback? onReject;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: theme.aiBubble,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(label,
+              style: TextStyle(fontSize: 13, color: theme.text)),
+          if (enabled) ...[
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                _DecisionBtn(
+                  label: 'Aceptar',
+                  selected: decision == _ChatActionDecision.approved,
+                  accent: theme.accent,
+                  accentFg: theme.accentFg,
+                  muted: theme.muted,
+                  onTap: onApprove,
+                ),
+                const SizedBox(width: 8),
+                _DecisionBtn(
+                  label: 'Omitir',
+                  selected: decision == _ChatActionDecision.rejected,
+                  accent: theme.muted,
+                  accentFg: theme.bg,
+                  muted: theme.muted,
+                  onTap: onReject,
+                ),
+              ],
+            ),
+          ] else ...[
+            const SizedBox(height: 4),
+            Text(
+              switch (decision) {
+                _ChatActionDecision.approved => 'Aprobado',
+                _ChatActionDecision.rejected => 'Omitido',
+                _ChatActionDecision.undecided => 'Sin decidir',
+              },
+              style: TextStyle(fontSize: 11, color: theme.muted),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _DecisionBtn extends StatelessWidget {
+  const _DecisionBtn({
+    required this.label,
+    required this.selected,
+    required this.accent,
+    required this.accentFg,
+    required this.muted,
+    this.onTap,
+  });
+  final String label;
+  final bool selected;
+  final Color accent;
+  final Color accentFg;
+  final Color muted;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding:
+            const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: selected ? accent : accent.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w500,
+            color: selected ? accentFg : muted,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// Tipos internos privados
+enum _ChatRole { user, assistant }
+
+enum _ChatActionStatus {
+  none,
+  pending,
+  applying,
+  applied,
+  failed,
+  dismissed,
+}
+
+enum _ChatActionDecision { approved, rejected, undecided }
+
 class _ChatMessage {
-  const _ChatMessage({
+  _ChatMessage({
     this.id,
     required this.role,
     required this.text,
-    this.actions = const <GeminiActionProposal>[],
-    this.actionDecisions = const <_ChatActionDecision>[],
+    this.actions = const [],
+    this.actionDecisions = const [],
     this.actionStatus = _ChatActionStatus.none,
     this.actionResult,
   });
 
-  factory _ChatMessage.fromRecord(chat_models.AiChatMessage record) {
-    final decodedActions = AiChatLocalStore.decodeActionsJson(record.actionsJson);
-    return _ChatMessage(
-      id: record.id,
-      role: record.role == chat_models.AiChatMessageRole.user
-          ? _ChatRole.user
-          : _ChatRole.assistant,
-      text: record.text,
-      actions: decodedActions
-          .map(GeminiActionProposal.fromJson)
-          .whereType<GeminiActionProposal>()
-          .toList(growable: false),
-      actionDecisions: List<_ChatActionDecision>.filled(
-        decodedActions.length,
-        _ChatActionDecision.undecided,
-      ),
-      actionStatus: _chatActionStatusFromPersistence(record.actionStatus),
-      actionResult: record.actionResult,
-    );
-  }
-
   final int? id;
-
   final _ChatRole role;
   final String text;
   final List<GeminiActionProposal> actions;
@@ -998,27 +1510,19 @@ class _ChatMessage {
   final _ChatActionStatus actionStatus;
   final String? actionResult;
 
-  bool get hasUndecidedActions =>
-      actionDecisions.any((decision) => decision == _ChatActionDecision.undecided);
-
   bool get isReadyToApply =>
-      actions.isNotEmpty && !hasUndecidedActions && approvedActions.isNotEmpty;
+      actions.isNotEmpty && actionDecisions.length == actions.length;
 
-  List<GeminiActionProposal> get approvedActions {
-    final approved = <GeminiActionProposal>[];
-    for (var index = 0; index < actions.length; index++) {
-      final decision = index < actionDecisions.length
-          ? actionDecisions[index]
-          : _ChatActionDecision.undecided;
-      if (decision == _ChatActionDecision.approved) {
-        approved.add(actions[index]);
-      }
-    }
-    return approved;
-  }
+  bool get hasUndecidedActions =>
+      actionDecisions.any((d) => d == _ChatActionDecision.undecided);
+
+  List<GeminiActionProposal> get approvedActions => [
+        for (var i = 0; i < actions.length; i++)
+          if (actionDecisions[i] == _ChatActionDecision.approved) actions[i],
+      ];
 
   int get rejectedCount => actionDecisions
-      .where((decision) => decision == _ChatActionDecision.rejected)
+      .where((d) => d == _ChatActionDecision.rejected)
       .length;
 
   _ChatMessage copyWith({
@@ -1040,211 +1544,14 @@ class _ChatMessage {
       actionResult: actionResult ?? this.actionResult,
     );
   }
-}
 
-enum _ChatRole { user, assistant }
-
-enum _ChatActionDecision { undecided, approved, rejected }
-
-enum _ChatActionStatus { none, pending, applying, applied, dismissed, failed }
-
-_ChatActionStatus _chatActionStatusFromPersistence(
-  chat_models.AiChatMessageActionStatus status,
-) {
-  return switch (status) {
-    chat_models.AiChatMessageActionStatus.pending => _ChatActionStatus.pending,
-    chat_models.AiChatMessageActionStatus.applying => _ChatActionStatus.applying,
-    chat_models.AiChatMessageActionStatus.applied => _ChatActionStatus.applied,
-    chat_models.AiChatMessageActionStatus.dismissed => _ChatActionStatus.dismissed,
-    chat_models.AiChatMessageActionStatus.failed => _ChatActionStatus.failed,
-    chat_models.AiChatMessageActionStatus.none => _ChatActionStatus.none,
-  };
-}
-
-class _ActionPreviewCard extends StatelessWidget {
-  const _ActionPreviewCard({
-    required this.theme,
-    required this.actions,
-    required this.actionDecisions,
-    required this.status,
-    required this.resultMessage,
-    this.onApproveAction,
-    this.onRejectAction,
-    this.onApply,
-    this.onDismiss,
-  });
-
-  final _AgentThemeData theme;
-  final List<GeminiActionProposal> actions;
-  final List<_ChatActionDecision> actionDecisions;
-  final _ChatActionStatus status;
-  final String? resultMessage;
-  final ValueChanged<int>? onApproveAction;
-  final ValueChanged<int>? onRejectAction;
-  final VoidCallback? onApply;
-  final VoidCallback? onDismiss;
-
-  @override
-  Widget build(BuildContext context) {
-    return DecoratedBox(
-      decoration: BoxDecoration(
-        color: theme.inputBackgroundColor,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: theme.borderColor),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'Cambios propuestos',
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                color: theme.primaryTextColor,
-              ),
-            ),
-            const SizedBox(height: 8),
-            for (final entry in actions.asMap().entries)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: _ActionDecisionRow(
-                  theme: theme,
-                  label: entry.value.previewLabel,
-                  decision: entry.key < actionDecisions.length
-                      ? actionDecisions[entry.key]
-                      : _ChatActionDecision.undecided,
-                  enabled: status == _ChatActionStatus.pending,
-                  onApprove: onApproveAction == null
-                      ? null
-                      : () => onApproveAction!(entry.key),
-                  onReject: onRejectAction == null
-                      ? null
-                      : () => onRejectAction!(entry.key),
-                ),
-              ),
-            if (resultMessage != null) ...[
-              const SizedBox(height: 8),
-              Text(
-                resultMessage!,
-                style: TextStyle(color: theme.primaryTextColor),
-              ),
-            ],
-            if (status == _ChatActionStatus.pending ||
-                status == _ChatActionStatus.applying) ...[
-              const SizedBox(height: 12),
-              Row(
-                children: [
-                  FilledButton(
-                    onPressed: status == _ChatActionStatus.pending
-                        ? onApply
-                        : null,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: theme.accentColor,
-                      foregroundColor: theme.onAccentColor,
-                    ),
-                    child: Text(
-                      status == _ChatActionStatus.applying
-                          ? 'Aplicando...'
-                          : 'Aplicar aprobados',
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  TextButton(
-                    onPressed: status == _ChatActionStatus.pending
-                        ? onDismiss
-                        : null,
-                    style: TextButton.styleFrom(
-                      foregroundColor: theme.primaryTextColor,
-                    ),
-                    child: const Text('Ignorar'),
-                  ),
-                ],
-              ),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _ActionDecisionRow extends StatelessWidget {
-  const _ActionDecisionRow({
-    required this.theme,
-    required this.label,
-    required this.decision,
-    required this.enabled,
-    this.onApprove,
-    this.onReject,
-  });
-
-  final _AgentThemeData theme;
-  final String label;
-  final _ChatActionDecision decision;
-  final bool enabled;
-  final VoidCallback? onApprove;
-  final VoidCallback? onReject;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: theme.pageBackgroundColor.withValues(alpha: 0.46),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: theme.borderColor),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            label,
-            style: TextStyle(color: theme.primaryTextColor),
-          ),
-          if (enabled) ...[
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                FilledButton.tonal(
-                  onPressed: onApprove,
-                  style: FilledButton.styleFrom(
-                    backgroundColor: decision == _ChatActionDecision.approved
-                        ? theme.accentColor
-                        : theme.inputBackgroundColor,
-                    foregroundColor: decision == _ChatActionDecision.approved
-                        ? theme.onAccentColor
-                        : theme.primaryTextColor,
-                  ),
-                  child: const Text('Aceptar'),
-                ),
-                const SizedBox(width: 8),
-                OutlinedButton(
-                  onPressed: onReject,
-                  style: OutlinedButton.styleFrom(
-                    side: BorderSide(
-                      color: decision == _ChatActionDecision.rejected
-                          ? theme.accentColor
-                          : theme.borderColor,
-                    ),
-                    foregroundColor: theme.primaryTextColor,
-                  ),
-                  child: const Text('Omitir'),
-                ),
-              ],
-            ),
-          ] else ...[
-            const SizedBox(height: 6),
-            Text(
-              switch (decision) {
-                _ChatActionDecision.approved => 'Aprobado',
-                _ChatActionDecision.rejected => 'Omitido',
-                _ChatActionDecision.undecided => 'Sin decidir',
-              },
-              style: TextStyle(color: theme.mutedColor),
-            ),
-          ],
-        ],
-      ),
+  static _ChatMessage fromRecord(chat_models.AiChatMessage record) {
+    return _ChatMessage(
+      id: record.id,
+      role: record.role == chat_models.AiChatMessageRole.user
+          ? _ChatRole.user
+          : _ChatRole.assistant,
+      text: record.text,
     );
   }
 }

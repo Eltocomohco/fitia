@@ -1,0 +1,34 @@
+<svg viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+  <!-- Cuerpo -->
+  <circle cx="100" cy="110" r="45" fill="#C9302C"/>
+
+  <!-- Cabeza -->
+  <circle cx="100" cy="60" r="40" fill="#C9302C"/>
+
+  <!-- Orejas -->
+  <circle cx="75" cy="25" r="12" fill="#C9302C"/>
+  <circle cx="125" cy="25" r="12" fill="#C9302C"/>
+
+  <!-- Ojos blancos -->
+  <circle cx="85" cy="55" r="8" fill="white"/>
+  <circle cx="115" cy="55" r="8" fill="white"/>
+
+  <!-- Pupilas negras -->
+  <circle cx="85" cy="55" r="5" fill="black"/>
+  <circle cx="115" cy="55" r="5" fill="black"/>
+
+  <!-- Nariz -->
+  <circle cx="100" cy="70" r="5" fill="black"/>
+
+  <!-- Boca -->
+  <path d="M 100 70 Q 95 78 90 76" stroke="black" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M 100 70 Q 105 78 110 76" stroke="black" stroke-width="2" fill="none" stroke-linecap="round"/>
+
+  <!-- Patas delanteras -->
+  <ellipse cx="80" cy="145" rx="10" ry="20" fill="#C9302C"/>
+  <ellipse cx="120" cy="145" rx="10" ry="20" fill="#C9302C"/>
+
+  <!-- Patas traseras (parte visible) -->
+  <ellipse cx="70" cy="155" rx="12" ry="15" fill="#8B0000"/>
+  <ellipse cx="130" cy="155" rx="12" ry="15" fill="#8B0000"/>
+</svg>

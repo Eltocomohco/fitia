@@ -1,15 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../../../../core/theme/app_theme_provider.dart';
 import '../../../tracking/presentation/widgets/fasting_widget.dart';
 
 /// Pantalla de usuario con accesos de cuenta y utilidades.
-class ProfileScreen extends StatelessWidget {
+class ProfileScreen extends ConsumerWidget {
   /// Crea un [ProfileScreen].
   const ProfileScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final currentTheme = ref.watch(appThemeProvider);
     return Scaffold(
       appBar: AppBar(
         title: const Text('Perfil y ajustes'),
@@ -121,6 +124,46 @@ class ProfileScreen extends StatelessWidget {
               title: const Text('Calendario'),
               subtitle: const Text('Vista global del seguimiento diario y semanal'),
               onTap: () => context.push('/calendar'),
+            ),
+          ),
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.palette_outlined),
+              title: const Text('Tema de la app'),
+              subtitle: Text(
+                currentTheme == AppTheme.pandaRojo ? 'Panda Rojo 🐼' : 'Original',
+              ),
+              trailing: PopupMenuButton<AppTheme>(
+                onSelected: (theme) =>
+                    ref.read(appThemeProvider.notifier).setTheme(theme),
+                itemBuilder: (context) => [
+                  PopupMenuItem(
+                    value: AppTheme.original,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.check_circle_outline, size: 16),
+                        const SizedBox(width: 8),
+                        Text(currentTheme == AppTheme.original
+                            ? '✓ Original'
+                            : 'Original'),
+                      ],
+                    ),
+                  ),
+                  PopupMenuItem(
+                    value: AppTheme.pandaRojo,
+                    child: Row(
+                      children: [
+                        const Icon(Icons.pets_outlined, size: 16),
+                        const SizedBox(width: 8),
+                        Text(currentTheme == AppTheme.pandaRojo
+                            ? '✓ Panda Rojo 🐼'
+                            : 'Panda Rojo 🐼'),
+                      ],
+                    ),
+                  ),
+                ],
+                icon: const Icon(Icons.more_vert),
+              ),
             ),
           ),
         ],
