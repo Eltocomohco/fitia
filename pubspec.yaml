@@ -58,4 +58,4 @@ flutter:
     - .env
     - assets/animations/
     - assets/branding/
-    - assets/prompts/gemini_system_role.txt
+    - assets/prompts/
