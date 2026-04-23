@@ -38,15 +38,15 @@ class FitiCoachService {
 
   /// Crea un [FitiCoachService].
   FitiCoachService({String? apiKey})
-    : _apiKey = (apiKey ?? dotenv.env['GEMINI_API_KEY'] ?? '').trim(),
-      _systemPromptFuture = _loadSystemPrompt();
+    : _apiKey = (apiKey ?? dotenv.env['GEMINI_API_KEY'] ?? '').trim();
 
   final String _apiKey;
-  final Future<String> _systemPromptFuture;
   String? _resolvedChatModelName;
   String? _resolvedNotificationModelName;
   final Map<AiChatAgent, ChatSession> _chatSessions =
       <AiChatAgent, ChatSession>{};
+
+  static final Map<AiChatAgent, Future<String>> _systemPromptCache = {};
 
   void resetChat([AiChatAgent? agent]) {
     if (agent == null) {
@@ -83,7 +83,7 @@ class FitiCoachService {
       );
     }
 
-    final systemPrompt = await _systemPromptFuture;
+    final systemPrompt = await _getSystemPrompt(agent);
     final hiddenContext = await _buildAgentHiddenContext(isar, agent);
     final sessionDirective = _buildSessionDirective(hiddenContext, agent);
 
@@ -98,7 +98,7 @@ class FitiCoachService {
       try {
         final response = await activeSession.sendMessage(
           Content.text(normalizedMessage),
-        );
+        ).timeout(const Duration(seconds: 30));
         final text = response.text?.trim();
         if (text == null || text.isEmpty) {
           return const GeminiChatResponse(
@@ -137,7 +137,7 @@ class FitiCoachService {
         _chatSessions[agent] = chatSession;
         final response = await chatSession.sendMessage(
           Content.text(normalizedMessage),
-        );
+        ).timeout(const Duration(seconds: 30));
         final text = response.text?.trim();
         if (text == null || text.isEmpty) {
           return const GeminiChatResponse(
@@ -174,7 +174,7 @@ class FitiCoachService {
     required Isar isar,
     required GeminiNotificationKind kind,
   }) async {
-    final systemPrompt = await _systemPromptFuture;
+    final systemPrompt = await _getSystemPrompt(AiChatAgent.nutrition);
     final hiddenContext = await _buildHiddenContext(
       isar,
       profile: GeminiContextProfile.notification,
@@ -209,7 +209,7 @@ class FitiCoachService {
       try {
         final response = await model.generateContent([
           Content.text('$hiddenContext\n\n$instruction'),
-        ]);
+        ]).timeout(const Duration(seconds: 30));
         final text = response.text?.trim();
         if (text == null || text.isEmpty) {
           continue;
@@ -249,10 +249,27 @@ class FitiCoachService {
     return '${compact.substring(0, 137).trim()}...';
   }
 
-  static Future<String> _loadSystemPrompt() async {
-    return await rootBundle.loadString(
-      'assets/prompts/gemini_system_role.txt',
-    );
+
+  static Future<String> _getSystemPrompt(AiChatAgent agent) {
+    return _systemPromptCache.putIfAbsent(agent, () => _loadCombinedPrompt(agent));
+  }
+
+  static Future<String> _loadCombinedPrompt(AiChatAgent agent) async {
+    final general = await rootBundle.loadString('assets/prompts/agent_general_rules.txt');
+    String specificPath;
+    switch (agent) {
+      case AiChatAgent.nutrition:
+        specificPath = 'assets/prompts/agent_nutrifitio.txt';
+        break;
+      case AiChatAgent.workout:
+        specificPath = 'assets/prompts/agent_gymbrofitio.txt';
+        break;
+      case AiChatAgent.boss:
+        specificPath = 'assets/prompts/agent_fitiboss.txt';
+        break;
+    }
+    final specific = await rootBundle.loadString(specificPath);
+    return general.trim() + '\n\n' + specific.trim();
   }
 
   static GenerativeModel? _buildModel(
@@ -456,6 +473,31 @@ class FitiCoachService {
         '- open_shopping_list => {"type":"open_shopping_list"}',
       );
     }
+    if (allowedActions.contains(GeminiActionType.logConsumption)) {
+      lines.add(
+        '- log_consumption => {"type":"log_consumption","payload":{"itemName":"","itemType":"food o recipe","grams":0,"mealType":"desayuno,comida,cena,snack"}}',
+      );
+    }
+    if (allowedActions.contains(GeminiActionType.addWater)) {
+      lines.add(
+        '- add_water => {"type":"add_water","payload":{"mililitros":0}}',
+      );
+    }
+    if (allowedActions.contains(GeminiActionType.manageFasting)) {
+      lines.add(
+        '- manage_fasting => {"type":"manage_fasting","payload":{"activa":true,"horasObjetivo":16}}',
+      );
+    }
+    if (allowedActions.contains(GeminiActionType.updatePantry)) {
+      lines.add(
+        '- update_pantry => {"type":"update_pantry","payload":{"nombreProducto":"","nombreAlimentoBase":"","gramosPorUnidad":0,"cantidad":0}}',
+      );
+    }
+    if (allowedActions.contains(GeminiActionType.addCheckin)) {
+      lines.add(
+        '- add_checkin => {"type":"add_checkin","payload":{"animo":"muy_mal,mal,neutral,bien,muy_bien","notas":""}}',
+      );
+    }
     lines.add(
       'Antes de create_recipe o create_routine, comprueba si cada alimento o ejercicio ya existe en los catalogos del contexto. Si falta alguno, devuelve primero una accion separada para crearlo y explica en el reply que el usuario debe revisar y aprobar esas altas.',
     );
@@ -475,6 +517,31 @@ class FitiCoachService {
         'Si el usuario quiere ver, revisar o gestionar manualmente la lista de la compra de la app, usa open_shopping_list. Si pide la lista, además resume en el reply qué falta por comprar.',
       );
     }
+    if (allowedActions.contains(GeminiActionType.logConsumption)) {
+      lines.add(
+        'Si el usuario menciona que ha comido o bebido algo específico ahora o hace poco, usa log_consumption. Comprueba si el item ya existe en los catalogos. Si no existe, propone antes add_food o create_recipe.',
+      );
+    }
+    if (allowedActions.contains(GeminiActionType.addWater)) {
+      lines.add(
+        'Si el usuario menciona que ha bebido agua, usa add_water con la cantidad en ml.',
+      );
+    }
+    if (allowedActions.contains(GeminiActionType.manageFasting)) {
+      lines.add(
+        'Si el usuario quiere empezar o terminar un ayuno, usa manage_fasting. Por defecto usa horasObjetivo=16 si no se indica otra cosa.',
+      );
+    }
+    if (allowedActions.contains(GeminiActionType.updatePantry)) {
+      lines.add(
+        'Si el usuario menciona que ha comprado algo para la despensa o que se ha acabado algo, usa update_pantry. nombreAlimentoBase debe coincidir con un alimento del catalogo.',
+      );
+    }
+    if (allowedActions.contains(GeminiActionType.addCheckin)) {
+      lines.add(
+        'Si el usuario expresa sentimientos, estado de animo o cansancio, usa add_checkin.',
+      );
+    }
     if (allowedActions.contains(GeminiActionType.addFood)) {
       lines.add(
         'Para alimentos nuevos, estima macros razonables y usa porcionBaseGramos=100 por defecto salvo que el usuario indique otra base.',
@@ -483,6 +550,16 @@ class FitiCoachService {
     if (allowedActions.contains(GeminiActionType.createExercise)) {
       lines.add(
         'Para ejercicios nuevos, estima muscleGroup, usa restSeconds=90 por defecto y exerciseType="fuerza" salvo que sea claramente movilidad o estiramiento.',
+      );
+    }
+    if (allowedActions.contains(GeminiActionType.seedKeto)) {
+      lines.add(
+        '- seed_keto_database => {"type":"seed_keto_database"}',
+      );
+    }
+    if (allowedActions.contains(GeminiActionType.searchExternalFood)) {
+      lines.add(
+        '- search_external_food => {"type":"search_external_food","payload":{"query":""}}',
       );
     }
     return lines.join('\n');
@@ -740,35 +817,35 @@ class FitiCoachService {
     });
 
     final lastSession = completed.first;
-    final allSeries = await isar.series.where().findAll();
+    // Optimized: Only load series for the last session
+    final sessionSeries = await isar.series.filter().sesion((q) => q.idEqualTo(lastSession.id)).findAll();
+    
     final exerciseNames = <String>{};
     var tonelaje = 0.0;
     var completedSeries = 0;
-
-    for (final serie in allSeries) {
-      await serie.sesion.load();
-      if (serie.sesion.value?.id != lastSession.id || !serie.completada) {
-        continue;
-      }
-
+ 
+    for (final serie in sessionSeries) {
+      if (!serie.completada) continue;
+ 
       completedSeries += 1;
       tonelaje += serie.pesoKg * serie.repeticiones;
-      await serie.ejercicio.load();
+      
+      await serie.ejercicio.load(); 
       final exerciseName = serie.ejercicio.value?.nombre;
       if (exerciseName != null && exerciseName.trim().isNotEmpty) {
         exerciseNames.add(exerciseName);
       }
     }
-
+ 
     final namesPreview = exerciseNames.take(3).join(', ');
     final date = lastSession.fechaFin ?? lastSession.fechaInicio;
     final dateLabel =
         '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
-
+ 
     if (completedSeries == 0) {
       return 'sesión del $dateLabel sin series completadas';
     }
-
+ 
     final exercisesText = namesPreview.isEmpty
         ? 'sin ejercicios legibles'
         : namesPreview;
@@ -791,6 +868,14 @@ class FitiCoachService {
 
     registros.sort((a, b) => a.fecha.compareTo(b.fecha));
 
+    // Batch load names
+    final weeklyRecipeIds = registros.where((r) => r.esReceta).map((r) => r.itemId).toSet().toList();
+    final weeklyFoodIds = registros.where((r) => !r.esReceta).map((r) => r.itemId).toSet().toList();
+    final weeklyRecipes = await isar.recetas.getAll(weeklyRecipeIds);
+    final weeklyFoods = await isar.alimentos.getAll(weeklyFoodIds);
+    final weeklyRecipeNameMap = {for (var i = 0; i < weeklyRecipeIds.length; i++) if (weeklyRecipes[i] != null) weeklyRecipeIds[i]: weeklyRecipes[i]!.nombre.trim()};
+    final weeklyFoodNameMap = {for (var i = 0; i < weeklyFoodIds.length; i++) if (weeklyFoods[i] != null) weeklyFoodIds[i]: weeklyFoods[i]!.nombre.trim()};
+
     final mealsByKey = <String, _WeeklyMealSummary>{};
     for (final registro in registros) {
       final mealDate = DateTime(
@@ -804,15 +889,16 @@ class FitiCoachService {
         mealKey,
         () => _WeeklyMealSummary(date: mealDate, mealType: registro.tipoComida),
       );
-
-      final itemName = await _loadConsumedItemName(isar, registro);
+ 
+      final itemName = registro.esReceta ? weeklyRecipeNameMap[registro.itemId] : weeklyFoodNameMap[registro.itemId];
       if (itemName != null && itemName.isNotEmpty) {
         summary.items.add(itemName);
       }
-
-      final macros = registro.esReceta
-          ? await _sumRecipeMacros(isar, registro)
-          : await _sumFoodMacros(isar, registro);
+ 
+      // Optimized macros loading
+      final macros = await (registro.esReceta 
+          ? _sumRecipeMacros(isar, registro) 
+          : _sumFoodMacros(isar, registro));
       summary.kcal += macros.kcal;
     }
 
@@ -1298,12 +1384,18 @@ class FitiCoachService {
         GeminiActionType.updateBodyMetric,
         GeminiActionType.planWeeklyMenu,
         GeminiActionType.openShoppingList,
+        GeminiActionType.logConsumption,
+        GeminiActionType.addWater,
+        GeminiActionType.manageFasting,
+        GeminiActionType.updatePantry,
+        GeminiActionType.addCheckin,
       },
       AiChatAgent.workout => <GeminiActionType>{
         GeminiActionType.createExercise,
         GeminiActionType.createRoutine,
         GeminiActionType.updateRoutine,
         GeminiActionType.deleteRoutine,
+        GeminiActionType.addCheckin,
       },
       AiChatAgent.boss => GeminiActionType.values.toSet(),
     };
@@ -1348,6 +1440,13 @@ enum GeminiActionType {
   updateBodyMetric,
   planWeeklyMenu,
   openShoppingList,
+  logConsumption,
+  addWater,
+  manageFasting,
+  updatePantry,
+  addCheckin,
+  seedKeto,
+  searchExternalFood,
 }
 
 class GeminiActionProposal {
@@ -1380,6 +1479,11 @@ class GeminiActionProposal {
       'update_body_metric' => GeminiActionType.updateBodyMetric,
       'plan_weekly_menu' => GeminiActionType.planWeeklyMenu,
       'open_shopping_list' => GeminiActionType.openShoppingList,
+      'log_consumption' => GeminiActionType.logConsumption,
+      'add_water' => GeminiActionType.addWater,
+      'manage_fasting' => GeminiActionType.manageFasting,
+      'update_pantry' => GeminiActionType.updatePantry,
+      'add_checkin' => GeminiActionType.addCheckin,
       _ => null,
     };
     if (type == null) {
@@ -1422,6 +1526,19 @@ class GeminiActionProposal {
         'Guardar metricas: ${payload['weightKg'] ?? 'sin peso'} kg${payload['bodyFatPercent'] == null ? '' : ' · ${payload['bodyFatPercent']} % grasa'}',
       GeminiActionType.planWeeklyMenu => 'Planificar menu semanal',
       GeminiActionType.openShoppingList => 'Abrir lista de la compra',
+      GeminiActionType.logConsumption =>
+        'Registrar consumo: ${payload['itemName'] ?? 'sin nombre'}',
+      GeminiActionType.addWater =>
+        'Registrar agua: ${payload['mililitros'] ?? '0'} ml',
+      GeminiActionType.manageFasting =>
+        '${payload['activa'] == true ? 'Iniciar' : 'Terminar'} ayuno',
+      GeminiActionType.updatePantry =>
+        'Actualizar despensa: ${payload['nombreProducto'] ?? 'sin nombre'}',
+      GeminiActionType.addCheckin =>
+        'Registrar check-in: ${payload['animo'] ?? 'neutral'}',
+      GeminiActionType.seedKeto => 'Poblar base de datos Keto',
+      GeminiActionType.searchExternalFood =>
+        'Buscar en Edamam: ${payload['query'] ?? 'sin consulta'}',
     };
   }
 }

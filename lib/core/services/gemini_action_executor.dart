@@ -8,7 +8,12 @@ import '../../features/progress/data/models/metrica_corporal.dart';
 import '../../features/workouts/data/models/ejercicio.dart';
 import '../../features/workouts/data/models/rutina_ejercicio.dart';
 import '../../features/workouts/data/models/rutina_plantilla.dart';
+import '../../features/progress/data/models/registro_agua.dart';
+import '../../features/tracking/data/models/sesion_ayuno.dart';
+import '../../features/dashboard/data/models/checkin_animo.dart';
+import '../../features/shopping/data/models/despensa_producto.dart';
 import '../../features/workouts/presentation/providers/workout_routine_provider.dart';
+import '../../features/nutrition/data/services/keto_seed_service.dart';
 import 'gemini_companion_service.dart';
 
 class GeminiActionExecutionResult {
@@ -103,6 +108,48 @@ abstract final class GeminiActionExecutor {
         case GeminiActionType.openShoppingList:
           messages.add('OK: lista de la compra lista para revisar.');
           applied += 1;
+        case GeminiActionType.logConsumption:
+          final message = await _applyLogConsumption(isar, action);
+          messages.add(message);
+          if (message.startsWith('OK:')) {
+            applied += 1;
+          }
+        case GeminiActionType.addWater:
+          final message = await _applyAddWater(isar, action);
+          messages.add(message);
+          if (message.startsWith('OK:')) {
+            applied += 1;
+          }
+        case GeminiActionType.manageFasting:
+          final message = await _applyManageFasting(isar, action);
+          messages.add(message);
+          if (message.startsWith('OK:')) {
+            applied += 1;
+          }
+        case GeminiActionType.updatePantry:
+          final message = await _applyUpdatePantry(isar, action);
+          messages.add(message);
+          if (message.startsWith('OK:')) {
+            applied += 1;
+          }
+        case GeminiActionType.addCheckin:
+          final message = await _applyAddCheckin(isar, action);
+          messages.add(message);
+          if (message.startsWith('OK:')) {
+            applied += 1;
+          }
+        case GeminiActionType.seedKeto:
+          final message = await _applySeedKeto(isar);
+          messages.add(message);
+          if (message.startsWith('OK:')) {
+            applied += 1;
+          }
+        case GeminiActionType.searchExternalFood:
+          final message = await _applySearchExternalFood(isar, action);
+          messages.add(message);
+          if (message.startsWith('OK:')) {
+            applied += 1;
+          }
       }
     }
 
@@ -909,6 +956,164 @@ abstract final class GeminiActionExecutor {
         .length;
     return 'OK: menu semanal guardado con ${plannedLogs.length} comidas en $uniqueDays dias.';
   }
+  
+  static Future<String> _applyLogConsumption(
+    Isar isar,
+    GeminiActionProposal action,
+  ) async {
+    final payload = action.payload;
+    final itemName = payload['itemName']?.toString().trim() ?? '';
+    final itemType = _toPlannedItemType(payload['itemType']);
+    final mealType = _toMealType(payload['mealType']) ?? TipoComida.snack;
+    final grams = _toDouble(payload['grams']) ?? 0.0;
+
+    if (itemName.isEmpty || itemType == null || grams <= 0) {
+      return 'ERROR: log_consumption con datos incompletos.';
+    }
+
+    final foods = await isar.alimentos.where().findAll();
+    final recipes = await isar.recetas.where().findAll();
+
+    final itemId = switch (itemType) {
+      _PlannedMenuItemType.food => _findFoodByName(foods, itemName)?.id,
+      _PlannedMenuItemType.recipe => _findRecipeByName(recipes, itemName)?.id,
+    };
+
+    if (itemId == null) {
+      return 'ERROR: no se encontro "$itemName" en los catalogos.';
+    }
+
+    final entry = RegistroDiario(
+      fecha: DateTime.now(),
+      tipoComida: mealType,
+      esReceta: itemType == _PlannedMenuItemType.recipe,
+      itemId: itemId,
+      cantidadConsumidaGramos: grams,
+    );
+
+    await isar.writeTxn(() async {
+      await isar.registrosDiarios.put(entry);
+    });
+
+    return 'OK: consume de ${grams.toStringAsFixed(0)}g de "$itemName" registrado.';
+  }
+
+  static Future<String> _applyAddWater(
+    Isar isar,
+    GeminiActionProposal action,
+  ) async {
+    final ml = _toInt(action.payload['mililitros']) ?? 0;
+    if (ml <= 0) {
+      return 'ERROR: add_water necesita mililitros positivos.';
+    }
+
+    final entry = RegistroAgua(
+      fecha: DateTime.now(),
+      mililitros: ml,
+    );
+
+    await isar.writeTxn(() async {
+      await isar.registrosAgua.put(entry);
+    });
+
+    return 'OK: ${ml}ml de agua registrados.';
+  }
+
+  static Future<String> _applyManageFasting(
+    Isar isar,
+    GeminiActionProposal action,
+  ) async {
+    final activa = action.payload['activa'] == true;
+    final horas = _toInt(action.payload['horasObjetivo']) ?? 16;
+
+    await isar.writeTxn(() async {
+      final session = await isar.sesionesAyuno.get(1) ?? SesionAyuno(fechaInicio: DateTime.now());
+      session.activa = activa;
+      session.horasObjetivo = horas;
+      if (activa) {
+        session.fechaInicio = DateTime.now();
+      }
+      await isar.sesionesAyuno.put(session);
+    });
+
+    return activa ? 'OK: ayuno de ${horas}h iniciado.' : 'OK: ayuno terminado.';
+  }
+
+  static Future<String> _applyUpdatePantry(
+    Isar isar,
+    GeminiActionProposal action,
+  ) async {
+    final payload = action.payload;
+    final productName = payload['nombreProducto']?.toString().trim() ?? '';
+    final foodBaseName = payload['nombreAlimentoBase']?.toString().trim() ?? '';
+    final grams = _toDouble(payload['gramosPorUnidad']) ?? 0.0;
+    final quantity = _toInt(payload['cantidad']) ?? 1;
+
+    if (productName.isEmpty || foodBaseName.isEmpty) {
+      return 'ERROR: update_pantry incompleto.';
+    }
+
+    final foods = await isar.alimentos.where().findAll();
+    final food = _findFoodByName(foods, foodBaseName);
+    if (food == null) {
+      return 'ERROR: alimento base "$foodBaseName" no encontrado.';
+    }
+
+    final existing = await isar.despensaProductos.where().findAll();
+    var pantryItem = existing.cast<DespensaProducto?>().firstWhere(
+      (item) => item?.nombreProducto.toLowerCase() == productName.toLowerCase(),
+      orElse: () => null,
+    );
+
+    if (pantryItem == null) {
+      pantryItem = DespensaProducto(
+        alimentoId: food.id,
+        nombreAlimento: food.nombre,
+        nombreProducto: productName,
+        gramosPorUnidad: grams > 0 ? grams : 100,
+        cantidad: quantity,
+      );
+    } else {
+      pantryItem.cantidad = quantity;
+      if (grams > 0) pantryItem.gramosPorUnidad = grams;
+    }
+
+    await isar.writeTxn(() async {
+      await isar.despensaProductos.put(pantryItem!);
+    });
+
+    return 'OK: despensa actualizada para "$productName".';
+  }
+
+  static Future<String> _applyAddCheckin(
+    Isar isar,
+    GeminiActionProposal action,
+  ) async {
+    final payload = action.payload;
+    final rawAnimo = payload['animo']?.toString().trim().toLowerCase() ?? 'neutral';
+    final notas = payload['notas']?.toString().trim() ?? '';
+
+    final animo = switch (rawAnimo) {
+      'muy_mal' => EstadoAnimo.hundido,
+      'mal' => EstadoAnimo.bajo,
+      'bien' => EstadoAnimo.bien,
+      'muy_bien' => EstadoAnimo.fuerte,
+      _ => EstadoAnimo.estable,
+    };
+
+    final entry = CheckinAnimo(
+      fecha: DateTime.now(),
+      estado: animo,
+      energia: 5, // Valor por defecto
+      nota: notas.isEmpty ? null : notas,
+    );
+
+    await isar.writeTxn(() async {
+      await isar.checkinsAnimo.put(entry);
+    });
+
+    return 'OK: check-in emocional registrado.';
+  }
 
   static double? _toDouble(Object? value) {
     if (value == null) {
@@ -1019,6 +1224,13 @@ abstract final class GeminiActionExecutor {
       GeminiActionType.deleteRecipe => 4,
       GeminiActionType.deleteRoutine => 4,
       GeminiActionType.updateBodyMetric => 4,
+      GeminiActionType.logConsumption => 4,
+      GeminiActionType.addWater => 4,
+      GeminiActionType.manageFasting => 4,
+      GeminiActionType.updatePantry => 4,
+      GeminiActionType.addCheckin => 4,
+      GeminiActionType.seedKeto => 1, // Prioridad alta para que otros busquen sobre base nueva
+      GeminiActionType.searchExternalFood => 0, // Prioridad máxima para búsquedas previas
       GeminiActionType.openShoppingList => 5,
     };
   }
@@ -1053,6 +1265,29 @@ abstract final class GeminiActionExecutor {
       'recipe' || 'receta' => _PlannedMenuItemType.recipe,
       _ => null,
     };
+  }
+  static Future<String> _applySearchExternalFood(
+    Isar isar,
+    GeminiActionProposal action,
+  ) async {
+    final query = action.payload['query']?.toString().trim() ?? '';
+    if (query.isEmpty) {
+      return 'ERROR: search_external_food sin consulta.';
+    }
+    
+    // El agente IA debe saber que esto es una acción de BÚSQUEDA.
+    // No la aplicamos directamente a Isar aquí, sino que devolvemos un mensaje
+    // que el Frontend usará para disparar la búsqueda real y mostrar resultados.
+    return 'OK: buscando "$query" en Edamam... (Resultado pendiente de UI)';
+  }
+
+  static Future<String> _applySeedKeto(Isar isar) async {
+    try {
+      final added = await KetoSeedService.seedKetoFoods(isar);
+      return 'OK: base de datos keto poblada con $added nuevos alimentos.';
+    } catch (e) {
+      return 'ERROR: fallo al poblar base keto: $e';
+    }
   }
 }
 
